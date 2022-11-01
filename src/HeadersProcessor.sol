@@ -10,6 +10,12 @@ contract HeadersProcessor is IHeadersProcessor {
     uint256 public latestReceived;
     mapping(uint256 => bytes32) public receivedParentHashes;
 
+    mapping(uint256 => bytes32) public parentHashes;
+    mapping(uint256 => bytes32) public stateRoots;
+    mapping(uint256 => bytes32) public receiptsRoots;
+    mapping(uint256 => bytes32) public transactionsRoots;
+    mapping(uint256 => bytes32) public unclesHash;
+
     constructor(ICommitmentsInbox _commitmentsInbox) {
         commitmentsInbox = _commitmentsInbox;
     }
@@ -19,6 +25,14 @@ contract HeadersProcessor is IHeadersProcessor {
             latestReceived = blockNumber;
         }
         receivedParentHashes[blockNumber] = parentHash;
+    }
+
+    function processBlock(uint256 blockNumber, bytes calldata headerSerialized) external {
+        bytes32 expectedHash = receivedParentHashes[blockNumber + 1];
+        require(expectedHash != bytes32(0));
+
+        bytes32 actualHash = keccak256(headerSerialized);
+        require(actualHash == expectedHash);
     }
 
     modifier onlyCommitmentsInbox() {
