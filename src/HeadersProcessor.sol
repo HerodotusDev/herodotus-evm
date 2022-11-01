@@ -7,13 +7,17 @@ import {ICommitmentsInbox} from "./interfaces/ICommitmentsInbox.sol";
 contract HeadersProcessor is IHeadersProcessor {
     ICommitmentsInbox public immutable commitmentsInbox;
 
+    uint256 public latestReceived;
+    mapping(uint256 => bytes32) public receivedParentHashes;
+
     constructor(ICommitmentsInbox _commitmentsInbox) {
         commitmentsInbox = _commitmentsInbox;
     }
 
-    mapping(uint256 => bytes32) public receivedParentHashes;
-
     function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external onlyCommitmentsInbox {
+        if (blockNumber > latestReceived) {
+            latestReceived = blockNumber;
+        }
         receivedParentHashes[blockNumber] = parentHash;
     }
 
