@@ -1,0 +1,12 @@
+{
+  "name": "herodotus-evm",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:HerodotusDev/herodotus-evm.git",
+  "author": "Marcello Bardus <marcellobardus8@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^2.7.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.24"
+  }
+}
