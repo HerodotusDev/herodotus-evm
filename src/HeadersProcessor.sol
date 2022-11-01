@@ -33,6 +33,8 @@ contract HeadersProcessor is IHeadersProcessor {
 
         bytes32 actualHash = keccak256(headerSerialized);
         require(actualHash == expectedHash);
+
+        
     }
 
     modifier onlyCommitmentsInbox() {
