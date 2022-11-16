@@ -6,7 +6,9 @@ async function main() {
   const { ALCHEMY_URL } = process.env;
   if (!ALCHEMY_URL) throw new Error(`ALCHEMY_URL has not been provided`);
 
-  const blockNumber = 1000;
+  const arg = process.argv[2];
+  if (!arg) throw new Error("Block number has not been provided");
+  const blockNumber = Number(arg);
   const rpcBody = {
     jsonrpc: "2.0",
     method: "eth_getBlockByNumber",

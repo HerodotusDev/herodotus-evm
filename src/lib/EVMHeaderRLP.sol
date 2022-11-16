@@ -36,13 +36,13 @@ pragma solidity ^0.8.9;
 
 // SAFEMATH DISCLAIMER:
 // We and don't use SafeMath here intentionally, because input values are bytes in a byte-array, thus limited to 255
-library HeaderRLP {
+library EVMHeaderRLP {
     function checkBlockHash(bytes calldata rlp) external view returns (uint256) {
         uint256 rlpBlockNumber = getBlockNumber(rlp);
 
         require(
             blockhash(rlpBlockNumber) == keccak256(rlp), // blockhash() costs 20 now but it may cost 5000 in the future
-            "HeaderRLP.checkBlockHash: Block hashes don't match"
+            "EVMHeaderRLP.checkBlockHash: Block hashes don't match"
         );
         return rlpBlockNumber;
     }
@@ -55,7 +55,7 @@ library HeaderRLP {
         } else if (prefix <= 183) {
             return prefix - 128 + 1;
         }
-        revert("HeaderRLP.nextElementJump: Given element length not implemented");
+        revert("EVMHeaderRLP.nextElementJump: Given element length not implemented");
     }
 
     // no loop saves ~300 gas
@@ -170,5 +170,21 @@ library HeaderRLP {
 
     function getBaseFee(bytes calldata rlp) external pure returns (uint256 baseFee) {
         return extractFromRLP(rlp, getBaseFeePositionNoLoop(rlp));
+    }
+
+    function getParentHash(bytes calldata rlp) external pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, 3));
+    }
+
+    function getStateRoot(bytes calldata rlp) external pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, 90));
+    }
+
+    function getTransactionsRoot(bytes calldata rlp) external pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, 123));
+    }
+
+    function getReceiptsRoot(bytes calldata rlp) external pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, 156));
     }
 }
