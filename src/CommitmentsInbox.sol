@@ -42,7 +42,7 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
     ) external onlyCrossdomainCounterpart {
         bytes32 optimisticMessage = headersProcessor.receivedParentHashes(blockNumber);
         if (optimisticMessage != bytes32(0) && optimisticMessage != parentHash) {
-            _executeSlash(relayerPenaltyRecipient);
+            _executeSlash(blockNumber, parentHash, optimisticMessage, relayerPenaltyRecipient);
         }
         headersProcessor.receiveParentHash(blockNumber, parentHash);
     }
@@ -63,7 +63,14 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
         stakingAsset.safeTransferFrom(msg.sender, address(this), stakingRequirement);
     }
 
-    function _executeSlash(address relayerPenaltyRecipient) internal {}
+    function _executeSlash(
+        uint256 fraudaulentBlock,
+        bytes32 validParentHash,
+        bytes32 invalidParentHash,
+        address relayerPenaltyRecipient
+    ) internal {
+        emit FraudProven(fraudaulentBlock, validParentHash, invalidParentHash, relayerPenaltyRecipient);
+    }
 
     modifier onlySufficientStake() {
         require(stakingAsset.balanceOf(address(this)) >= stakingRequirement);

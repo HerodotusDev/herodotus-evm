@@ -19,8 +19,8 @@ contract HeadersProcessorMock is IHeadersProcessor {
         parentHashes[blockNumber] = parentHash;
     }
 
-    function receivedParentHashes(uint256) external view returns (bytes32) {
-        return bytes32(0);
+    function receivedParentHashes(uint256 blockNumber) external view returns (bytes32) {
+        return parentHashes[blockNumber];
     }
 }
 
@@ -32,7 +32,7 @@ contract MsgSignerMock is IMsgSigner {
     }
 }
 
-contract CommitmentsInbox_WithoutStaking_Test is Test {
+contract CommitmentsInbox_OptimiticRelaying_Test is Test {
     EOA private relayer;
     EOA private owner;
     WETHMock private collateral;
@@ -60,7 +60,61 @@ contract CommitmentsInbox_WithoutStaking_Test is Test {
     }
 }
 
-contract CommitmentsInbox_WithStaking_Test is Test {
+contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
+    EOA private relayer;
+    EOA private owner;
+    EOA private crossdomainDelivery;
+    WETHMock private collateral;
+
+    HeadersProcessorMock private headersProcessor;
+    MsgSignerMock private msgSigner;
+
+    CommitmentsInbox private commitmentsInbox;
+
+    constructor() {
+        relayer = new EOA();
+        owner = new EOA();
+
+        collateral = new WETHMock();
+        headersProcessor = new HeadersProcessorMock();
+        msgSigner = new MsgSignerMock();
+
+        commitmentsInbox = new CommitmentsInbox(
+            IHeadersProcessor(address(headersProcessor)),
+            msgSigner,
+            IERC20(address(collateral)),
+            0,
+            address(owner),
+            address(crossdomainDelivery)
+        );
+    }
+
+    function test_fail_receiveCrossdomainMessage_notCrossdomainMsgSender() public {
+        vm.prank(address(1));
+        vm.expectRevert();
+        commitmentsInbox.receiveCrossdomainMessage(bytes32(uint256(1)), 1, address(0));
+    }
+
+    function test_receiveCrossdomainMessage_messageSets() public {
+        vm.prank(address(crossdomainDelivery));
+        commitmentsInbox.receiveCrossdomainMessage(bytes32(uint256(1)), 1, address(0));
+        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
+    }
+
+    function test_receiveCrossdomainMessage_fraudDetection() public {
+        /// Fraudaulent relayer behaviour
+        bytes memory signature = "0x";
+        commitmentsInbox.receiveOptimisticMessage(bytes32(uint256(1)), 1, signature);
+
+        /// Resolution
+        vm.prank(address(crossdomainDelivery));
+        // vm.expectEmit(false, false, false, true); TODO fix this
+        commitmentsInbox.receiveCrossdomainMessage(bytes32(uint256(2)), 1, address(0));
+        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(2)));
+    }
+}
+
+contract CommitmentsInbox_Staking_Test is Test {
     EOA private relayer;
     EOA private owner;
     WETHMock private collateral;
@@ -103,10 +157,10 @@ contract CommitmentsInbox_WithStaking_Test is Test {
         assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
     }
 
-    function fail_receiveOptimisticMessage_notStaked() public {
+    function test_fail_receiveOptimisticMessage_notStaked() public {
         bytes memory signature = "0x";
+        vm.expectRevert();
         commitmentsInbox.receiveOptimisticMessage(bytes32(uint256(1)), 1, signature);
-        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
     }
 
     function _stake(bytes memory signature) internal {
