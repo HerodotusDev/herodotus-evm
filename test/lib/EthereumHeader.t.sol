@@ -2,11 +2,8 @@
 pragma solidity ^0.8.9;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "../helpers/console.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {CheatCodes} from "../utils/CheatCodes.sol";
-import {EthereumHeader} from "../../src/lib/EthereumHeader.sol";
 import {EVMHeaderRLP} from "../../src/lib/EVMHeaderRLP.sol";
 
 contract EthereumHeaderLib_Test is Test {
