@@ -37,16 +37,6 @@ pragma solidity ^0.8.9;
 // SAFEMATH DISCLAIMER:
 // We and don't use SafeMath here intentionally, because input values are bytes in a byte-array, thus limited to 255
 library EVMHeaderRLP {
-    function checkBlockHash(bytes calldata rlp) external view returns (uint256) {
-        uint256 rlpBlockNumber = getBlockNumber(rlp);
-
-        require(
-            blockhash(rlpBlockNumber) == keccak256(rlp), // blockhash() costs 20 now but it may cost 5000 in the future
-            "EVMHeaderRLP.checkBlockHash: Block hashes don't match"
-        );
-        return rlpBlockNumber;
-    }
-
     function nextElementJump(uint8 prefix) public pure returns (uint8) {
         // RLP has much more options for element lenghts
         // But we are safe between 56 bytes and 2MB
@@ -174,6 +164,14 @@ library EVMHeaderRLP {
 
     function getParentHash(bytes calldata rlp) external pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 3));
+    }
+
+    function getUnclesHash(bytes calldata rlp) external pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, 36));
+    }
+
+    function getBeneficiary(bytes calldata rlp) external pure returns (address) {
+        return address(uint160(extractFromRLP(rlp, 70)));
     }
 
     function getStateRoot(bytes calldata rlp) external pure returns (bytes32) {

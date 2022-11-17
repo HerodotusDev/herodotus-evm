@@ -81,4 +81,34 @@ contract EthereumHeaderLib_Test is Test {
 
         assertEq(actualReceiptsRoot, expectedReceiptsRoot);
     }
+
+    function test_decodeUnclesHash() public {
+        bytes32 actualUnclesHash = EVMHeaderRLP.getUnclesHash(rlp);
+
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_header_prop.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = "sha3Uncles";
+
+        bytes memory expectedUnclesHashBytes = vm.ffi(inputs);
+        bytes32 expectedUnclesHash = bytes32(expectedUnclesHashBytes);
+
+        assertEq(actualUnclesHash, expectedUnclesHash);
+    }
+
+    function test_decodeBeneficiary() public {
+        address actualBeneficiary = EVMHeaderRLP.getBeneficiary(rlp);
+
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_header_prop.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = "miner";
+
+        bytes memory expectedBeneficiaryBytes = vm.ffi(inputs);
+        address expectedBeneficiary = address(uint160(uint256(bytes32(expectedBeneficiaryBytes))));
+
+        assertEq(actualBeneficiary, expectedBeneficiary);
+    }
 }
