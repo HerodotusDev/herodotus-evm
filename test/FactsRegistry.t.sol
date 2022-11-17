@@ -30,6 +30,9 @@ contract HeadersStorageMock is IHeadersStorage {
 }
 
 contract FactsRegistry_Test is Test {
+    bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
+    bytes32 private constant EMPTY_CODE_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421; // TODO replace with proper value
+
     FactsRegistry private factsRegistry;
     IHeadersStorage private headersStorage;
 
@@ -53,5 +56,10 @@ contract FactsRegistry_Test is Test {
         address account = address(uint160(uint256(0x00456cb24d30eaa6affc2a6924dae0d2a0a8c99c73)));
 
         factsRegistry.proveAccount(bitmap, blockNumber, account, proof);
+
+        assertEq(factsRegistry.accountBalances(account, blockNumber), 0);
+        assertEq(factsRegistry.accountNonces(account, blockNumber), 0);
+        assertEq(factsRegistry.accountStorageHashes(account, blockNumber), EMPTY_TRIE_ROOT_HASH);
+        assertEq(factsRegistry.accountCodeHashes(account, blockNumber), EMPTY_CODE_HASH);
     }
 }
