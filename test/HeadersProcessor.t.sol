@@ -9,8 +9,6 @@ import {EOA} from "./helpers/EOA.sol";
 import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 
-import {console} from "./helpers/console.sol";
-
 contract HeadersProcessor_Processing_Test is Test {
     using Strings for uint256;
 
