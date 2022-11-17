@@ -2,12 +2,13 @@
 pragma solidity ^0.8.9;
 
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
+import {IHeadersStorage} from "./interfaces/IHeadersStorage.sol";
 import {ICommitmentsInbox} from "./interfaces/ICommitmentsInbox.sol";
 
 import {EVMHeaderRLP} from "./lib/EVMHeaderRLP.sol";
 import {Bitmap16} from "./lib/Bitmap16.sol";
 
-contract HeadersProcessor is IHeadersProcessor {
+contract HeadersProcessor is IHeadersProcessor, IHeadersStorage {
     using Bitmap16 for uint16;
     using EVMHeaderRLP for bytes;
 

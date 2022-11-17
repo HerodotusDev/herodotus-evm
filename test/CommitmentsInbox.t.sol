@@ -22,22 +22,6 @@ contract HeadersProcessorMock is IHeadersProcessor {
     function receivedParentHashes(uint256 blockNumber) external view returns (bytes32) {
         return parentHashes[blockNumber];
     }
-
-    function stateRoots(uint256) external pure returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function receiptsRoots(uint256) external pure returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function transactionsRoots(uint256) external pure returns (bytes32) {
-        return bytes32(0);
-    }
-
-    function unclesHashes(uint256) external pure returns (bytes32) {
-        return bytes32(0);
-    }
 }
 
 contract MsgSignerMock is IMsgSigner {
