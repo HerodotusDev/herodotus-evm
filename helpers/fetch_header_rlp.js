@@ -22,7 +22,7 @@ async function main() {
     const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody));
     header = rpcResponse.data.result;
   } else {
-    const cached = require("./cached.json");
+    const cached = require("./cached_headers.json");
     header = cached["GOERLI"][arg];
     if (!header) throw new Error(`Block ${arg} is not cached`);
   }
