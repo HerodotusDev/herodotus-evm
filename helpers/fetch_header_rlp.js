@@ -1,9 +1,10 @@
 require("dotenv").config();
+const { keccak256 } = require("@ethersproject/keccak256");
 const axios = require("axios");
 const RLP = require("rlp");
 
 async function main() {
-  const { ALCHEMY_URL } = process.env;
+  const { ALCHEMY_URL, OFFLINE } = process.env;
   if (!ALCHEMY_URL) throw new Error(`ALCHEMY_URL has not been provided`);
 
   const arg = process.argv[2];
@@ -22,8 +23,8 @@ async function main() {
     header = rpcResponse.data.result;
   } else {
     const cached = require("./cached.json");
-    header = cached["GOERLI"][blockNumberArg];
-    if (!header) throw new Error(`Block ${blockNumberArg} is not cached`);
+    header = cached["GOERLI"][arg];
+    if (!header) throw new Error(`Block ${arg} is not cached`);
   }
 
   const data = [
@@ -34,7 +35,7 @@ async function main() {
     header.transactionsRoot,
     header.receiptsRoot,
     header.logsBloom,
-    header.difficulty,
+    header.difficulty === "0x0" ? "0x" : header.difficulty,
     header.number,
     header.gasLimit,
     header.gasUsed,
@@ -49,6 +50,9 @@ async function main() {
   }
 
   const headerRlp = "0x" + RLP.encode(data).toString("hex");
+
+  const actualHash = keccak256(headerRlp);
+  if (actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
   console.log(headerRlp);
 }
 
