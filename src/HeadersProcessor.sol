@@ -39,7 +39,7 @@ contract HeadersProcessor is IHeadersProcessor {
         bytes calldata headerSerialized
     ) external {
         bytes32 expectedHash = receivedParentHashes[blockNumber + 1];
-        require(expectedHash != bytes32(0));
+        require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
 
         bool isValid = isHeaderValid(expectedHash, headerSerialized);
         require(isValid, "ERR_INVALID_HEADER");
@@ -53,7 +53,7 @@ contract HeadersProcessor is IHeadersProcessor {
         bytes calldata headerSerialized
     ) external {
         bytes32 expectedHash = parentHashes[blockNumber + 1];
-        require(expectedHash != bytes32(0));
+        require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
 
         bool isValid = isHeaderValid(expectedHash, headerSerialized);
         require(isValid, "ERR_INVALID_HEADER");
