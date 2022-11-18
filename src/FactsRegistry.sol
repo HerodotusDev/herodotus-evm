@@ -14,13 +14,13 @@ contract FactsRegistry is IFactsRegistry {
     using RLP for bytes;
     using Bitmap16 for uint16;
 
-    uint8 private constant ACCOUNT_BALANCE_INDEX = 0;
-    uint8 private constant ACCOUNT_NONCE_INDEX = 1;
+    uint8 private constant ACCOUNT_NONCE_INDEX = 0;
+    uint8 private constant ACCOUNT_BALANCE_INDEX = 1;
     uint8 private constant ACCOUNT_STORAGE_ROOT_INDEX = 2;
     uint8 private constant ACCOUNT_CODE_HASH_INDEX = 3;
 
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
-    bytes32 private constant EMPTY_CODE_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421; // TODO replace with proper value
+    bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
     IHeadersStorage public immutable headersStorage;
 

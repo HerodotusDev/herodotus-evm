@@ -31,7 +31,7 @@ contract HeadersStorageMock is IHeadersStorage {
 
 contract FactsRegistry_Test is Test {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
-    bytes32 private constant EMPTY_CODE_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421; // TODO replace with proper value
+    bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // TODO replace with proper value
 
     FactsRegistry private factsRegistry;
     IHeadersStorage private headersStorage;
@@ -41,7 +41,7 @@ contract FactsRegistry_Test is Test {
         factsRegistry = new FactsRegistry(headersStorage);
     }
 
-    function test_proveAccount() public {
+    function test_proveAccount_emptyAccount() public {
         string[] memory inputs = new string[](6);
         inputs[0] = "node";
         inputs[1] = "./helpers/fetch_state_proof.js";
@@ -61,5 +61,27 @@ contract FactsRegistry_Test is Test {
         assertEq(factsRegistry.accountNonces(account, blockNumber), 0);
         assertEq(factsRegistry.accountStorageHashes(account, blockNumber), EMPTY_TRIE_ROOT_HASH);
         assertEq(factsRegistry.accountCodeHashes(account, blockNumber), EMPTY_CODE_HASH);
+    }
+
+    function test_proveAccount_nonEmptyAccount() public {
+        string[] memory inputs = new string[](6);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_state_proof.js";
+        inputs[2] = "7583802";
+        inputs[3] = "0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6";
+        inputs[4] = "0x0000000000000000000000000000000000000000000000000000000000000033";
+        inputs[5] = "account";
+        bytes memory proof = vm.ffi(inputs);
+
+        uint16 bitmap = 15; // 0b1111
+        uint256 blockNumber = 7583802;
+        address account = address(uint160(uint256(0x007b2f05cE9aE365c3DBF30657e2DC6449989e83D6)));
+
+        factsRegistry.proveAccount(bitmap, blockNumber, account, proof);
+
+        assertEq(factsRegistry.accountBalances(account, blockNumber), 0);
+        assertEq(factsRegistry.accountNonces(account, blockNumber), 1);
+        assertEq(factsRegistry.accountStorageHashes(account, blockNumber), 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
+        assertEq(factsRegistry.accountCodeHashes(account, blockNumber), 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c);
     }
 }
