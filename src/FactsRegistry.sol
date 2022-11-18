@@ -91,4 +91,16 @@ contract FactsRegistry is IFactsRegistry {
             accountBalances[account][blockNumber] = balance;
         }
     }
+
+    function proveStorage(
+        address account,
+        uint256 blockNumber,
+        bytes32 slot,
+        bytes memory storageProof
+    ) public view returns (bytes32) {
+        bytes32 root = accountStorageHashes[account][blockNumber];
+        require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
+        bytes32 proofPath = keccak256(abi.encodePacked(slot));
+        return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
+    }
 }
