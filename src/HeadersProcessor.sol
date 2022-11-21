@@ -34,26 +34,15 @@ contract HeadersProcessor is IHeadersProcessor, IHeadersStorage {
         receivedParentHashes[blockNumber] = parentHash;
     }
 
-    function processBlockFromVerifiedHash(
-        uint16 paramsBitmap,
-        uint256 blockNumber,
-        bytes calldata headerSerialized
-    ) external {
-        bytes32 expectedHash = receivedParentHashes[blockNumber + 1];
-        require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
-
-        bool isValid = isHeaderValid(expectedHash, headerSerialized);
-        require(isValid, "ERR_INVALID_HEADER");
-
-        _processBlock(paramsBitmap, blockNumber, headerSerialized);
-    }
-
     function processBlock(
         uint16 paramsBitmap,
         uint256 blockNumber,
         bytes calldata headerSerialized
     ) external {
         bytes32 expectedHash = parentHashes[blockNumber + 1];
+        if (expectedHash == bytes32(0)) {
+            expectedHash = receivedParentHashes[blockNumber + 1];
+        }
         require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
 
         bool isValid = isHeaderValid(expectedHash, headerSerialized);

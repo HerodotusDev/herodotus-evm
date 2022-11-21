@@ -33,7 +33,7 @@ contract HeadersProcessor_Processing_Test is Test {
         headersProcessor.receiveParentHash(initialParentHashSentForBlock, parentHash);
     }
 
-    function test_processBlockFromVerifiedHash() public {
+    function test_processBlock_fromVerifiedHash() public {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
 
         string[] memory rlp_inputs = new string[](3);
@@ -42,7 +42,7 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs[2] = blockNumber.toString();
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        headersProcessor.processBlockFromVerifiedHash(0, blockNumber, headerRlp);
+        headersProcessor.processBlock(0, blockNumber, headerRlp);
 
         string[] memory parentHash_inputs = new string[](4);
         parentHash_inputs[0] = "node";
@@ -62,7 +62,7 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
         rlp_inputs_1[2] = blockNumber.toString();
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
-        headersProcessor.processBlockFromVerifiedHash(0, blockNumber, headerRlp_1);
+        headersProcessor.processBlock(0, blockNumber, headerRlp_1);
 
         uint256 nextBlock = blockNumber - 1;
         string[] memory rlp_inputs_2 = new string[](3);
@@ -93,7 +93,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         uint16 bitmap = 2; // 0b10
-        headersProcessor.processBlockFromVerifiedHash(bitmap, blockNumber, headerRlp);
+        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
 
         string[] memory unclesHash_inputs = new string[](4);
         unclesHash_inputs[0] = "node";
@@ -116,7 +116,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         uint16 bitmap = 8; // 0b1000
-        headersProcessor.processBlockFromVerifiedHash(bitmap, blockNumber, headerRlp);
+        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
 
         string[] memory stateRoot_inputs = new string[](4);
         stateRoot_inputs[0] = "node";
@@ -139,7 +139,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         uint16 bitmap = 16; // 0b10000
-        headersProcessor.processBlockFromVerifiedHash(bitmap, blockNumber, headerRlp);
+        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
 
         string[] memory transactionsRoot_inputs = new string[](4);
         transactionsRoot_inputs[0] = "node";
@@ -162,7 +162,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         uint16 bitmap = 32; // 0b100000
-        headersProcessor.processBlockFromVerifiedHash(bitmap, blockNumber, headerRlp);
+        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
 
         string[] memory receiptsRoot_inputs = new string[](4);
         receiptsRoot_inputs[0] = "node";
