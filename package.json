@@ -11,9 +11,11 @@
     "yarn-run-all": "^3.1.1"
   },
   "scripts": {
-    "deploy": "npm-run-all -p -l deploy:*",
-    "deploy:goerli": "export $(grep -v '^#' .env.goerli | xargs); forge script script/DeploymentGoerli.s.sol:Deployment --ffi --rpc-url $ALCHEMY_URL --etherscan-api-key $ETHERSCAN_API_KEY --private-key $PRIVATE_KEY --broadcast --verify -vvvvv",
-    "deploy:mumbai": "export $(grep -v '^#' .env.mumbai | xargs); forge script script/DeploymentMumbai.s.sol:Deployment --ffi --rpc-url $ALCHEMY_URL --etherscan-api-key $ETHERSCAN_API_KEY --private-key $PRIVATE_KEY --broadcast --verify -vvvvv"
+    "deploy": "npm-run-all -p -l deploy:*; yarn get-env",
+    "generic-deploy": "forge script script/Deployment.s.sol:Deployment --ffi --rpc-url $ALCHEMY_URL --etherscan-api-key $ETHERSCAN_API_KEY --private-key $PRIVATE_KEY --broadcast --verify -vvvvv",
+    "deploy:goerli": "export $(grep -v '^#' .env.goerli | xargs); yarn generic-deploy",
+    "deploy:mumbai": "export $(grep -v '^#' .env.mumbai | xargs); yarn generic-deploy",
+    "get-env": "node helpers/get_env_from_latest_run.js"
   },
   "dependencies": {
     "axios": "^1.2.1",
