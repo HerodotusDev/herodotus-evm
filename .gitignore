@@ -2,5 +2,6 @@ cache/
 out/
 node_modules/
 
-.env
+.env.goerli
+.env.mumbai
 broadcast
