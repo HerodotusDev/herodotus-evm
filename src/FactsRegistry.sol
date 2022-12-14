@@ -33,12 +33,7 @@ contract FactsRegistry is IFactsRegistry {
         headersStorage = _headersStorage;
     }
 
-    function proveAccount(
-        uint16 paramsBitmap,
-        uint256 blockNumber,
-        address account,
-        bytes calldata proof
-    ) external {
+    function proveAccount(uint16 paramsBitmap, uint256 blockNumber, address account, bytes calldata proof) external {
         bytes32 stateRoot = headersStorage.stateRoots(blockNumber);
         require(stateRoot != bytes32(0), "ERR_EMPTY_STATE_ROOT");
 
@@ -50,8 +45,7 @@ contract FactsRegistry is IFactsRegistry {
         uint256 nonce;
         uint256 balance;
 
-        // TODO check length with assembly to avoid using keccak
-        if (keccak256(accountRLP) != 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470) {
+        if (accountRLP.length > 0) {
             RLP.RLPItem[] memory accountItems = accountRLP.toRLPItem().toList();
 
             if (paramsBitmap.readBitAtIndexFromRight(0)) {
@@ -92,12 +86,7 @@ contract FactsRegistry is IFactsRegistry {
         }
     }
 
-    function proveStorage(
-        address account,
-        uint256 blockNumber,
-        bytes32 slot,
-        bytes memory storageProof
-    ) public view returns (bytes32) {
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) public view returns (bytes32) {
         bytes32 root = accountStorageHashes[account][blockNumber];
         require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
         bytes32 proofPath = keccak256(abi.encodePacked(slot));
