@@ -18,6 +18,8 @@ import {IMsgSigner} from "../src/interfaces/IMsgSigner.sol";
 
 import {CREATE} from "../src/lib/CREATE.sol";
 
+import {WETHMock} from "../test/helpers/WETHMock.sol";
+
 contract Deployment is Script {
     function run() public {
         vm.startBroadcast();
@@ -32,11 +34,13 @@ contract Deployment is Script {
         address predictedHeadersProcessor = CREATE.computeFutureAddress(deployer, deployerNonce + 2);
         address predictedCommitmentsInbox = CREATE.computeFutureAddress(deployer, deployerNonce + 3);
         address predictedSigner = CREATE.computeFutureAddress(deployer, deployerNonce + 4);
+        address predictedWethMock = CREATE.computeFutureAddress(deployer, deployerNonce + 5);
 
         new HeadersProcessor(ICommitmentsInbox(predictedCommitmentsInbox));
-        new CommitmentsInbox(IHeadersProcessor(predictedHeadersProcessor), IMsgSigner(predictedSigner), IERC20(address(0)), 0, address(0), address(0));
+        new CommitmentsInbox(IHeadersProcessor(predictedHeadersProcessor), IMsgSigner(predictedSigner), IERC20(predictedWethMock), 0, address(0), address(0));
         new Secp256k1MsgSigner(deployer, deployer);
         new FactsRegistry(IHeadersStorage(predictedHeadersProcessor));
+        new WETHMock();
 
         vm.stopBroadcast();
     }
