@@ -6,7 +6,7 @@ const chains = [
   [80001, "MUMBAI"],
 ];
 const contractNamesAndEnvs = [
-  ["CommitmentsInbox", "syncTypes->OPTIMISTIC-> address"],
+  ["CommitmentsInbox", "syncTypes->OPTIMISTIC->address"],
   ["FactsRegistry", "factsRegistry"],
   ["HeadersProcessor", "headersProcessor"],
 ];
