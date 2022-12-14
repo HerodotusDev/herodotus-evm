@@ -20,7 +20,7 @@ contract Secp256k1MsgSigner is IMsgSigner, Ownable {
 
     function verify(bytes32 hash, bytes calldata sig) external view {
         bool isValid = SignatureChecker.isValidSignatureNow(signer, hash, sig);
-        require(isValid);
+        require(isValid, "ERR_INVALID_SIGNATURE");
     }
 
     function signingKey() external view returns (bytes32) {

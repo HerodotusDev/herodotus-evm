@@ -35,11 +35,7 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
         crossDomainMsgSender = _crossDomainMsgSender;
     }
 
-    function receiveCrossdomainMessage(
-        bytes32 parentHash,
-        uint256 blockNumber,
-        address relayerPenaltyRecipient
-    ) external onlyCrossdomainCounterpart {
+    function receiveCrossdomainMessage(bytes32 parentHash, uint256 blockNumber, address relayerPenaltyRecipient) external onlyCrossdomainCounterpart {
         bytes32 optimisticMessage = headersProcessor.receivedParentHashes(blockNumber);
         if (optimisticMessage != bytes32(0) && optimisticMessage != parentHash) {
             _executeSlash(blockNumber, parentHash, optimisticMessage, relayerPenaltyRecipient);
@@ -47,11 +43,7 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
         headersProcessor.receiveParentHash(blockNumber, parentHash);
     }
 
-    function receiveOptimisticMessage(
-        bytes32 parentHash,
-        uint256 blockNumber,
-        bytes calldata signature
-    ) external onlySufficientStake {
+    function receiveOptimisticMessage(bytes32 parentHash, uint256 blockNumber, bytes calldata signature) external onlySufficientStake {
         bytes32 msgHash = keccak256(abi.encode(msg.sig, parentHash, blockNumber, address(this)));
         optimisticSigner.verify(msgHash, signature);
         headersProcessor.receiveParentHash(blockNumber, parentHash);
@@ -63,12 +55,7 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
         stakingAsset.safeTransferFrom(msg.sender, address(this), stakingRequirement);
     }
 
-    function _executeSlash(
-        uint256 fraudaulentBlock,
-        bytes32 validParentHash,
-        bytes32 invalidParentHash,
-        address relayerPenaltyRecipient
-    ) internal {
+    function _executeSlash(uint256 fraudaulentBlock, bytes32 validParentHash, bytes32 invalidParentHash, address relayerPenaltyRecipient) internal {
         emit FraudProven(fraudaulentBlock, validParentHash, invalidParentHash, relayerPenaltyRecipient);
     }
 

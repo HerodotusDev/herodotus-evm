@@ -3,6 +3,8 @@ pragma solidity ^0.8.9;
 
 import {Test} from "forge-std/Test.sol";
 
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+
 import {EOA} from "./helpers/EOA.sol";
 import {WETHMock} from "./helpers/WETHMock.sol";
 
@@ -11,6 +13,8 @@ import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
 import {IMsgSigner} from "../src/interfaces/IMsgSigner.sol";
+
+import {Secp256k1MsgSigner} from "../src/msg-signers/Secp256k1MsgSigner.sol";
 
 contract HeadersProcessorMock is IHeadersProcessor {
     mapping(uint256 => bytes32) public parentHashes;
@@ -169,5 +173,56 @@ contract CommitmentsInbox_Staking_Test is Test {
         collateral.approve(address(commitmentsInbox), type(uint256).max);
         commitmentsInbox.stake(signature);
         vm.stopPrank();
+    }
+}
+
+contract CommitmentsInbox_Signing_Test is Test {
+    using Strings for uint256;
+
+    CommitmentsInbox private commitmentsInbox;
+    Secp256k1MsgSigner private msgSigner;
+
+    EOA private relayer;
+    EOA private owner;
+    WETHMock private collateral;
+
+    HeadersProcessorMock private headersProcessor;
+
+    constructor() {
+        string[] memory getAddress_inputs = new string[](2);
+        getAddress_inputs[0] = "node";
+        getAddress_inputs[1] = "./helpers/fetch_account_nonce.js";
+        bytes memory result = vm.ffi(getAddress_inputs);
+
+        (address account, ) = abi.decode(result, (address, uint256));
+
+        relayer = new EOA();
+        owner = new EOA();
+
+        collateral = new WETHMock();
+        headersProcessor = new HeadersProcessorMock();
+        msgSigner = new Secp256k1MsgSigner(account, address(1));
+
+        commitmentsInbox = new CommitmentsInbox(IHeadersProcessor(address(headersProcessor)), msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
+    }
+
+    function test_receiveOptimisticMessage() public {
+        bytes4 methodSelector = 0xe0eac309;
+        bytes32 parentHash = 0xa95f8bec71798d9b7d8a73146aa296b92b29962401e84a9f3c679294eb5baac6;
+        uint256 blockNumber = 8132837;
+        address verificationContract = address(commitmentsInbox);
+
+        string[] memory getSig_inputs = new string[](6);
+        getSig_inputs[0] = "node";
+        getSig_inputs[1] = "./helpers/sign_optimistic_msg.js";
+        getSig_inputs[2] = uint256(uint32(methodSelector)).toHexString();
+        getSig_inputs[3] = uint256(parentHash).toHexString();
+        getSig_inputs[4] = blockNumber.toHexString();
+        getSig_inputs[5] = uint256(uint160(verificationContract)).toHexString();
+        bytes memory signature = vm.ffi(getSig_inputs);
+
+        commitmentsInbox.receiveOptimisticMessage(parentHash, blockNumber, signature);
+
+        assertEq(headersProcessor.receivedParentHashes(blockNumber), parentHash);
     }
 }
