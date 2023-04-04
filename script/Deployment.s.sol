@@ -36,8 +36,9 @@ contract Deployment is Script {
         address predictedSigner = CREATE.computeFutureAddress(deployer, deployerNonce + 4);
         address predictedWethMock = CREATE.computeFutureAddress(deployer, deployerNonce + 6);
 
-        new HeadersProcessor(ICommitmentsInbox(predictedCommitmentsInbox));
-        new CommitmentsInbox(IHeadersProcessor(predictedHeadersProcessor), IMsgSigner(predictedSigner), IERC20(predictedWethMock), 0, address(0), address(0));
+        HeadersProcessor headersProcessor = new HeadersProcessor(ICommitmentsInbox(predictedCommitmentsInbox));
+        CommitmentsInbox commitmentsInbox = new CommitmentsInbox(IMsgSigner(predictedSigner), IERC20(predictedWethMock), 0, address(this), address(0));
+        commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
         new Secp256k1MsgSigner(deployer, deployer);
         new FactsRegistry(IHeadersStorage(predictedHeadersProcessor));
         new WETHMock();

@@ -13,26 +13,26 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
     using SafeERC20 for IERC20;
 
     address public immutable crossDomainMsgSender;
-    IHeadersProcessor public immutable headersProcessor;
+    IHeadersProcessor public headersProcessor;
     IMsgSigner public immutable optimisticSigner;
 
     IERC20 public immutable stakingAsset;
     uint256 public stakingRequirement;
 
-    constructor(
-        IHeadersProcessor _headersProcessor,
-        IMsgSigner _optimisticSigner,
-        IERC20 _stakingAsset,
-        uint256 _stakingRequirement,
-        address _owner,
-        address _crossDomainMsgSender
-    ) {
+    bool public initialized;
+
+    constructor(IMsgSigner _optimisticSigner, IERC20 _stakingAsset, uint256 _stakingRequirement, address _owner, address _crossDomainMsgSender) {
         Ownable._transferOwnership(_owner);
         optimisticSigner = _optimisticSigner;
-        headersProcessor = _headersProcessor;
         stakingAsset = _stakingAsset;
         stakingRequirement = _stakingRequirement;
         crossDomainMsgSender = _crossDomainMsgSender;
+    }
+
+    function initialize(IHeadersProcessor _headersProcessor) external onlyOwner {
+        require(!initialized, "Already initialized");
+        headersProcessor = _headersProcessor;
+        initialized = true;
     }
 
     function receiveCrossdomainMessage(bytes32 parentHash, uint256 blockNumber, address relayerPenaltyRecipient) external onlyCrossdomainCounterpart {
