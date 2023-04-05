@@ -54,10 +54,8 @@ contract CommitmentsInbox_OptimiticRelaying_Test is Test {
         headersProcessor = new HeadersProcessorMock();
         msgSigner = new MsgSignerMock();
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_receiveOptimisticMessage() public {
@@ -86,10 +84,8 @@ contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
         headersProcessor = new HeadersProcessorMock();
         msgSigner = new MsgSignerMock();
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(crossdomainDelivery));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_fail_receiveCrossdomainMessage_notCrossdomainMsgSender() public {
@@ -138,9 +134,7 @@ contract CommitmentsInbox_Staking_Test is Test {
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), _collateralRequirement, address(owner), address(0));
-        vm.startPrank(address(owner));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_stake() public {
@@ -198,10 +192,8 @@ contract CommitmentsInbox_Signing_Test is Test {
         headersProcessor = new HeadersProcessorMock();
         msgSigner = new Secp256k1MsgSigner(account, address(1));
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_receiveOptimisticMessage() public {

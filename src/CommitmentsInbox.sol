@@ -8,8 +8,9 @@ import {IMsgSigner} from "./interfaces/IMsgSigner.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract CommitmentsInbox is ICommitmentsInbox, Ownable {
+contract CommitmentsInbox is ICommitmentsInbox, Ownable, Initializable {
     using SafeERC20 for IERC20;
 
     address public immutable crossDomainMsgSender;
@@ -19,8 +20,6 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
     IERC20 public immutable stakingAsset;
     uint256 public stakingRequirement;
 
-    bool public initialized;
-
     constructor(IMsgSigner _optimisticSigner, IERC20 _stakingAsset, uint256 _stakingRequirement, address _owner, address _crossDomainMsgSender) {
         Ownable._transferOwnership(_owner);
         optimisticSigner = _optimisticSigner;
@@ -29,10 +28,8 @@ contract CommitmentsInbox is ICommitmentsInbox, Ownable {
         crossDomainMsgSender = _crossDomainMsgSender;
     }
 
-    function initialize(IHeadersProcessor _headersProcessor) external onlyOwner {
-        require(!initialized, "Already initialized");
+    function initialize(IHeadersProcessor _headersProcessor) public initializer {
         headersProcessor = _headersProcessor;
-        initialized = true;
     }
 
     function receiveCrossdomainMessage(bytes32 parentHash, uint256 blockNumber, address relayerPenaltyRecipient) external onlyCrossdomainCounterpart {
