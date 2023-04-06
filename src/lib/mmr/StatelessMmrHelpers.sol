@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {console} from "forge-std/console.sol";
-
 library StatelessMmrHelpers {
     // Returns the number of bits in `num`
     function bitLength(uint256 num) internal pure returns (uint256) {
@@ -33,6 +31,7 @@ library StatelessMmrHelpers {
         return 2 << height;
     }
 
+    // Creates a new array from source and returns a new one containing all previous elements + `elem`
     function newArrWithElem(bytes32[] memory sourceArr, bytes32 elem) internal pure returns (bytes32[] memory) {
         bytes32[] memory outputArray = new bytes32[](sourceArr.length + 1);
         uint i = 0;
@@ -41,5 +40,15 @@ library StatelessMmrHelpers {
         }
         outputArray[i] = elem;
         return outputArray;
+    }
+
+    // Returns true if `elem` is in `arr`
+    function arrayContains(bytes32 elem, bytes32[] memory arr) internal pure returns (bool) {
+        for (uint i = 0; i < arr.length; ++i) {
+            if (arr[i] == elem) {
+                return true;
+            }
+        }
+        return false;
     }
 }
