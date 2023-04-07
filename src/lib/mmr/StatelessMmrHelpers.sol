@@ -17,7 +17,7 @@ library StatelessMmrHelpers {
 
     // Returns a number having all its bits set to 1 for a given `bitsLength`
     function allOnes(uint256 bitsLength) internal pure returns (uint256) {
-        require(bitsLength > 0, "bitLen must be greater than zero");
+        require(bitsLength >= 0, "bitsLength must be greater or equal to zero");
         return (1 << bitsLength) - 1;
     }
 
