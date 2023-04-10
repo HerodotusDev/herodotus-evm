@@ -352,7 +352,7 @@ contract StatelessMmrLib_Test is Test {
         assertEq(StatelessMmr.height(49), 1);
     }
 
-    function testMmrLibInteroperability() public {
+    function testMmrLibInteroperabilityAppends() public {
         string[] memory inputs = new string[](3);
         inputs[0] = "node";
         inputs[1] = "./helpers/off_chain_mmr.js";
@@ -370,6 +370,108 @@ contract StatelessMmrLib_Test is Test {
         for (uint i = 0; i < 100; ++i) {
             (pos, root, updatedPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(uint(i + 1)), updatedPeaks, pos, root);
             assertEq(root, rootHashes[i]);
+        }
+    }
+
+    function createStringArray(uint numStrings, bytes memory input, string memory delimiter) internal pure returns (string[] memory) {
+        uint[] memory stringLengths = new uint[](numStrings);
+        uint curLen = 0;
+        uint strIdx = 0;
+        for (uint256 i = 0; i < bytes(input).length; i++) {
+            if (bytes(input)[i] == bytes(delimiter)[0]) {
+                stringLengths[strIdx++] = curLen;
+                curLen = 0;
+            } else {
+                ++curLen;
+            }
+        }
+        stringLengths[strIdx] = curLen;
+
+        string[] memory stringArray = new string[](numStrings);
+        bytes memory substring = new bytes(stringLengths[0]);
+        uint stringArrayIndex = 0;
+        uint j = 0;
+        for (uint256 i = 0; i < bytes(input).length; i++) {
+            if ((bytes(input)[i] == bytes(delimiter)[0])) {
+                stringArray[stringArrayIndex++] = string(substring);
+                substring = new bytes(stringLengths[stringArrayIndex]);
+                j = 0;
+            } else {
+                substring[j++] = bytes(input)[i];
+            }
+        }
+        stringArray[stringArrayIndex] = string(substring);
+        return stringArray;
+    }
+
+    function hexStringToBytesMemory(string memory hexString) internal pure returns (bytes memory) {
+        bytes memory result = new bytes((bytes(hexString).length) / 2);
+
+        for (uint i = 0; i < bytes(hexString).length; i += 2) {
+            uint8 firstNibble = charToNibble(uint8(bytes(hexString)[i]));
+            uint8 secondNibble = charToNibble(uint8(bytes(hexString)[i + 1]));
+            result[i / 2] = bytes1((firstNibble << 4) | secondNibble);
+        }
+
+        return result;
+    }
+
+    function charToNibble(uint8 char) internal pure returns (uint8) {
+        if (char >= uint8(bytes1("0")) && char <= uint8(bytes1("9"))) {
+            return char - uint8(bytes1("0"));
+        }
+        if (char >= uint8(bytes1("a")) && char <= uint8(bytes1("f"))) {
+            return 10 + (char - uint8(bytes1("a")));
+        }
+        if (char >= uint8(bytes1("A")) && char <= uint8(bytes1("F"))) {
+            return 10 + (char - uint8(bytes1("A")));
+        }
+        revert("Invalid hex character");
+    }
+
+    function testMmrLibInteroperabilityProofsDebug() public {
+        // Compile-time
+        bytes
+            memory s = hex"edb38a93e6e2e82dbb40826a878df1d817a37ef13fcaa25248649a90fa47497b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f";
+
+        // Run-time
+        bytes memory s2 = hexStringToBytesMemory(
+            "edb38a93e6e2e82dbb40826a878df1d817a37ef13fcaa25248649a90fa47497b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001cc69885fda6bcc1a4ace058b4a62bf5e179ea78fd58a1ccd71c22cc9b688792f"
+        );
+
+        assertEq(s, s2);
+    }
+
+    function substr(string memory str, uint startIndex) internal pure returns (string memory) {
+        uint endIndex = bytes(str).length;
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(endIndex - startIndex);
+        for (uint i = startIndex; i < endIndex; i++) {
+            result[i - startIndex] = strBytes[i];
+        }
+        return string(result);
+    }
+
+    function testMmrLibInteroperabilityProofs() public {
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/off_chain_mmr.js";
+        inputs[2] = "100"; // Number of append to perform
+        inputs[3] = "true"; // Ask node.js to generate proofs
+        bytes memory output = vm.ffi(inputs);
+
+        string[] memory outputStrings = createStringArray(100, output, ";");
+        assertEq(outputStrings.length, 100);
+
+        for (uint i = 0; i < outputStrings.length; ++i) {
+            string memory s = outputStrings[i];
+            (uint index, bytes32 value, bytes32[] memory proof, bytes32[] memory peaks, uint pos, bytes32 root) = abi.decode(
+                hexStringToBytesMemory(substr(s, 2)),
+                (uint, bytes32, bytes32[], bytes32[], uint, bytes32)
+            );
+
+            // Verify proof
+            StatelessMmr.verifyProof(index, value, proof, peaks, pos, root);
         }
     }
 }
