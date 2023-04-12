@@ -4,3 +4,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/solidity-mmr"]
+	path = lib/solidity-mmr
+	url = https://github.com/HerodotusDev/solidity-mmr
