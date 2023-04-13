@@ -38,7 +38,7 @@ async function main() {
     header.difficulty === "0x0" ? "0x" : header.difficulty,
     header.number,
     header.gasLimit,
-    header.gasUsed,
+    header.gasUsed === "0x0" ? "0x" : header.gasUsed,
     header.timestamp,
     header.extraData,
     header.mixHash,

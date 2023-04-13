@@ -3,6 +3,7 @@ src = 'src'
 out = 'out'
 libs = ['lib']
 ffi = true
+viaIR = true
 
 [rpc_endpoints]
 goerli = "${ALCHEMY_URL}"
