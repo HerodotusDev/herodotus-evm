@@ -88,13 +88,13 @@ contract HeadersProcessor is IHeadersProcessor {
         bytes calldata referenceHeaderSerialized,
         bytes[] calldata headersSerialized
     ) external {
-        // Check block numbers are consecutive and in descending order
+        // Check block numbers are consecutive and in descending order and are cryptographically linked (via parentHash)
         for (uint256 i = 1; i < headersSerialized.length; ++i) {
             uint prevBlockNumber = headersSerialized[i - 1].getBlockNumber();
-            uint currBlockNumber = headersSerialized[i].getBlockNumber();
+            uint curBlockNumber = headersSerialized[i].getBlockNumber();
 
-            require(currBlockNumber != prevBlockNumber, "ERR_HEADER_DUPLICATE");
-            require(currBlockNumber == prevBlockNumber - 1, "ERR_HEADER_NON_CONSECUTIVE_DESC");
+            require(curBlockNumber != prevBlockNumber, "ERR_HEADER_DUPLICATE");
+            require(isHeaderValid(headersSerialized[i - 1].getParentHash(), headersSerialized[i]) == true, "ERR_UNEXPECTED_HEADER");
         }
 
         // Validate reference block inclusion proof
@@ -161,6 +161,6 @@ contract HeadersProcessor is IHeadersProcessor {
 
         // Parent's block hash (the candidate block to append)
         bool isValid = isHeaderValid(childBlockParentHash, headerSerialized);
-        require(isValid, "ERR_INVALID_HEADER");
+        require(isValid, "ERR_UNEXPECTED_HEADER");
     }
 }

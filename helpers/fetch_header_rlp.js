@@ -49,10 +49,13 @@ async function main() {
     data.push(header.baseFeePerGas);
   }
 
+  const isMalicious = process.argv[3] === "malicious";
+  if (isMalicious) {
+    data[3] = "0x4f8a2f80c6496e18bd911ba09b6cbb01e78b7637845c69253f2eec2875a67278"; // Fake state root
+  }
   const headerRlp = "0x" + RLP.encode(data).toString("hex");
-
   const actualHash = keccak256(headerRlp);
-  if (actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
+  if (!isMalicious && actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
   console.log(headerRlp);
 }
 

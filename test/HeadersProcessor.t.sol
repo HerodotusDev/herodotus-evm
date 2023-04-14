@@ -121,7 +121,7 @@ contract HeadersProcessor_Processing_Test is Test {
         headersProcessor.processBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headerRlp_2);
     }
 
-    function test_processTillBlock() public {
+    function test_processTillBlock_setup() public returns (bytes memory) {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
         string[] memory rlp_inputs_1 = new string[](3);
         rlp_inputs_1[0] = "node";
@@ -129,15 +129,16 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_1[2] = blockNumber.toString();
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
-        assertEq(headersProcessor.mmrElementsCount(), 0);
-
         vm.expectEmit(true, true, true, true);
         emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 1);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
+        return headerRlp_1;
+    }
 
-        bytes32[] memory nextPeaks = new bytes32[](1);
-        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
+    function test_processTillBlock() public {
+        uint256 blockNumber = initialParentHashSentForBlock - 1;
+        bytes memory headerRlp_1 = test_processTillBlock_setup();
 
         uint256 nextBlock = blockNumber - 1;
         string[] memory rlp_inputs_2 = new string[](3);
@@ -168,6 +169,8 @@ contract HeadersProcessor_Processing_Test is Test {
         headersToAppend[1] = headerRlp_3;
         headersToAppend[2] = headerRlp_4;
 
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
         vm.expectEmit(true, true, true, true);
         vm.expectEmit(true, true, true, true);
         vm.expectEmit(true, true, true, true);
@@ -175,17 +178,57 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp_3), nextBlock2, 3);
         emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 4);
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
+        assertEq(headersProcessor.mmrElementsCount(), 7);
+    }
 
-        // Check we can't do it twice (root has changed)
-        vm.expectRevert();
-        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
+    function test_processBlock_expect_revert() public {
+        uint256 blockNumber = initialParentHashSentForBlock - 1;
+        bytes memory headerRlp_1 = test_processTillBlock_setup();
 
-        // Test wrong order of headers
+        uint256 nextBlock = blockNumber - 1;
+        string[] memory rlp_inputs_2 = new string[](3);
+        rlp_inputs_2[0] = "node";
+        rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_2[2] = nextBlock.toString();
+        bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
+
+        uint256 nextBlock2 = blockNumber - 2;
+        string[] memory rlp_inputs_3 = new string[](3);
+        rlp_inputs_3[0] = "node";
+        rlp_inputs_3[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_3[2] = nextBlock2.toString();
+        bytes memory headerRlp_3 = vm.ffi(rlp_inputs_3);
+
+        uint256 nextBlock3 = blockNumber - 3;
+        string[] memory rlp_inputs_4 = new string[](3);
+        rlp_inputs_4[0] = "node";
+        rlp_inputs_4[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_4[2] = nextBlock3.toString();
+        bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
+
+        uint leafIndex = 1;
+        bytes32 leafValue = keccak256(headerRlp_1);
+        bytes32[] memory proof = new bytes32[](0);
+        bytes[] memory headersToAppend = new bytes[](3);
+        headersToAppend[0] = headerRlp_2;
+        headersToAppend[1] = headerRlp_3;
+        headersToAppend[2] = headerRlp_4;
+
+        // Test malicious RLP
+        string[] memory rlp_inputs_5 = new string[](4);
+        rlp_inputs_5[0] = "node";
+        rlp_inputs_5[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_5[2] = nextBlock3.toString();
+        rlp_inputs_5[3] = "malicious";
+        bytes memory headerRlp_4_malicious = vm.ffi(rlp_inputs_5);
         bytes[] memory headersToAppend2 = new bytes[](3);
-        headersToAppend2[0] = headerRlp_4;
+        headersToAppend2[0] = headerRlp_2;
         headersToAppend2[1] = headerRlp_3;
-        headersToAppend2[2] = headerRlp_2;
-        vm.expectRevert("ERR_HEADER_NON_CONSECUTIVE_DESC");
+        headersToAppend2[2] = headerRlp_4_malicious;
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
+
+        vm.expectRevert("ERR_UNEXPECTED_HEADER");
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
 
         // Test duplicate headers
@@ -195,8 +238,6 @@ contract HeadersProcessor_Processing_Test is Test {
         headersToAppend3[2] = headerRlp_3;
         vm.expectRevert("ERR_HEADER_DUPLICATE");
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend3);
-
-        assertEq(headersProcessor.mmrElementsCount(), 7);
     }
 }
 
