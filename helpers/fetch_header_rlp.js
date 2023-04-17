@@ -12,14 +12,14 @@ async function main() {
   const blockNumber = Number(arg);
 
   let header;
-  if (!OFFLINE) {
+  if (!OFFLINE || OFFLINE === "false") {
     const rpcBody = {
       jsonrpc: "2.0",
       method: "eth_getBlockByNumber",
       params: ["0x" + blockNumber.toString(16), false],
       id: 0,
     };
-    const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody));
+    const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody), { headers: { "Content-Type": "application/json" } });
     header = rpcResponse.data.result;
   } else {
     const cached = require("./cached_headers.json");

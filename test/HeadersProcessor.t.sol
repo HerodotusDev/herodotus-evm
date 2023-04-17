@@ -51,6 +51,7 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp), blockNumber, 1);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
     }
 
     function test_processBlockFromMessage() public {
@@ -86,6 +87,7 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 2);
         headersProcessor.processBlockFromMessage(nextBlock, headerRlp_2, nextPeaks);
         assertEq(headersProcessor.mmrElementsCount(), 3);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 2);
     }
 
     function test_processBlock() public {
@@ -133,6 +135,7 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 1);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
         return headerRlp_1;
     }
 
@@ -179,6 +182,7 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 4);
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
         assertEq(headersProcessor.mmrElementsCount(), 7);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 4);
     }
 
     function test_processBlock_expect_revert() public {
@@ -230,6 +234,7 @@ contract HeadersProcessor_Processing_Test is Test {
 
         vm.expectRevert("ERR_INVALID_CHAIN_ELEMENT");
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
     }
 }
 
@@ -248,6 +253,7 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         vm.prank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(blockNumber, parentHash);
         assertEq(headersProcessor.receivedParentHashes(blockNumber), parentHash);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
     }
 
     function test_fail_receiveParentHash_notCommitmentsInbox() public {
@@ -255,5 +261,6 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         bytes32 parentHash = "parent";
         vm.expectRevert("ERR_ONLY_INBOX");
         headersProcessor.receiveParentHash(blockNumber, parentHash);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
     }
 }
