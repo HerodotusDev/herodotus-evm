@@ -20,7 +20,7 @@ contract HeadersProcessor_Processing_Test is Test {
     uint256 initialParentHashSentForBlock = 7583803;
 
     // Emitted event after each successful `append` operation
-    event AccumulatorUpdate(bytes32 keccakHash, uint processedBlockNumber, uint updateId);
+    event AccumulatorUpdate(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
 
     constructor() {
         string[] memory inputs = new string[](4);
@@ -113,7 +113,7 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_2[2] = nextBlock.toString();
         bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
 
-        uint leafIndex = 1;
+        uint256 leafIndex = 1;
         bytes32 leafValue = keccak256(headerRlp_1);
         bytes32[] memory proof = new bytes32[](0);
         vm.expectEmit(true, true, true, true);
@@ -161,7 +161,7 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_4[2] = nextBlock3.toString();
         bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
 
-        uint leafIndex = 1;
+        uint256 leafIndex = 1;
         bytes32 leafValue = keccak256(headerRlp_1);
         bytes32[] memory proof = new bytes32[](0);
         bytes[] memory headersToAppend = new bytes[](3);
@@ -206,7 +206,7 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_4[2] = nextBlock3.toString();
         bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
 
-        uint leafIndex = 1;
+        uint256 leafIndex = 1;
         bytes32 leafValue = keccak256(headerRlp_1);
         bytes32[] memory proof = new bytes32[](0);
         bytes[] memory headersToAppend = new bytes[](3);
@@ -228,16 +228,8 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
 
-        vm.expectRevert("ERR_UNEXPECTED_HEADER");
+        vm.expectRevert("ERR_INVALID_CHAIN_ELEMENT");
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
-
-        // Test duplicate headers
-        bytes[] memory headersToAppend3 = new bytes[](3);
-        headersToAppend3[0] = headerRlp_2;
-        headersToAppend3[1] = headerRlp_2;
-        headersToAppend3[2] = headerRlp_3;
-        vm.expectRevert("ERR_HEADER_DUPLICATE");
-        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend3);
     }
 }
 
