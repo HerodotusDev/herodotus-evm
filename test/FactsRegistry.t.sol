@@ -106,6 +106,74 @@ contract FactsRegistry_Test is Test {
         assertEq(factsRegistry.accountCodeHashes(account, blockNumber), 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c);
     }
 
+    function test_proveAccount_revert() public {
+        (bytes memory headerRlp, bytes32[] memory peaks) = processBlockFromMessage();
+
+        string[] memory inputs = new string[](6);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_state_proof.js";
+        inputs[2] = "7583802";
+        inputs[3] = "0x456cb24d30eaa6affc2a6924dae0d2a0a8c99c73";
+        inputs[4] = "0x54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f8";
+        inputs[5] = "account";
+        bytes memory proof = vm.ffi(inputs);
+
+        uint16 bitmap = 15; // 0b1111
+        uint256 blockNumber = 7583802;
+        address account = address(uint160(uint256(0x00456cb24d30eaa6affc2a6924dae0d2a0a8c99c73)));
+
+        // Test wrong elements count
+        uint256 invalidElementsCount = 0;
+        vm.expectRevert("ERR_EMPTY_MMR_ROOT");
+        factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), invalidElementsCount, new bytes32[](0), peaks, headerRlp, proof);
+
+        // Test wrong peaks
+        bytes32[] memory invalidPeaks = new bytes32[](1);
+        invalidPeaks[0] = keccak256(abi.encode(42, keccak256(headerRlp)));
+
+        (bool status, ) = address(factsRegistry).call(
+            abi.encodeWithSignature(
+                "proveAccount(uint16,uint256,address,uint256,bytes32,uint256,bytes32[],bytes32[],bytes,bytes)",
+                bitmap,
+                blockNumber,
+                account,
+                1,
+                keccak256(headerRlp),
+                headersProcessor.mmrElementsCount(),
+                new bytes32[](0),
+                invalidPeaks,
+                headerRlp,
+                proof
+            )
+        );
+        assertFalse(status);
+
+        // Test malicious RLP header
+        string[] memory rlp_inputs_malicious = new string[](4);
+        rlp_inputs_malicious[0] = "node";
+        rlp_inputs_malicious[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_malicious[2] = "7583802";
+        rlp_inputs_malicious[3] = "malicious";
+        bytes memory headerRlp_malicious = vm.ffi(rlp_inputs_malicious);
+
+        (status, ) = address(factsRegistry).call(
+            abi.encodeWithSignature(
+                "proveAccount(uint16,uint256,address,uint256,bytes32,uint256,bytes32[],bytes32[],bytes,bytes)",
+                bitmap,
+                blockNumber,
+                account,
+                1,
+                keccak256(headerRlp),
+                headersProcessor.mmrElementsCount(),
+                new bytes32[](0),
+                peaks,
+                headerRlp_malicious,
+                proof
+            )
+        );
+        assertFalse(status);
+    }
+
     function test_proveStorage() public {
         (bytes memory headerRlp, bytes32[] memory peaks) = processBlockFromMessage();
 
