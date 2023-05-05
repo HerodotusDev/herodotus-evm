@@ -32,6 +32,8 @@ contract FactsRegistry is IFactsRegistry {
     mapping(address => mapping(uint256 => bytes32)) public accountCodeHashes;
     mapping(address => mapping(uint256 => bytes32)) public accountStorageHashes;
 
+    event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
+
     constructor(IHeadersProcessor _headersProcessor) {
         headersProcessor = _headersProcessor;
     }
@@ -84,6 +86,7 @@ contract FactsRegistry is IFactsRegistry {
             if (paramsBitmap.readBitAtIndexFromRight(3)) {
                 balance = accountItems[ACCOUNT_BALANCE_INDEX].toUint();
             }
+            emit AccountProven(account, blockNumber, nonce, balance, codeHash, storageHash);
         }
 
         // SAVE STORAGE_HASH

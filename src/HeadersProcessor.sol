@@ -89,11 +89,11 @@ contract HeadersProcessor is IHeadersProcessor {
             bytes32 keccakHash = keccak256(elements[i]);
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(keccakHash, nextPeaks, nextElementsCount, nextRoot);
 
-            emit AccumulatorUpdate(keccakHash, processedBlockNumber, mmrLatestUpdateId + updateIdCounter + 1);
+            emit AccumulatorUpdate(keccakHash, processedBlockNumber, mmrLatestUpdateId + updateIdCounter);
             ++updateIdCounter;
 
             // Update contract storage
-            mmrTreeSizeToRoot[nextElementsCount] = lastRoot;
+            mmrTreeSizeToRoot[nextElementsCount] = nextRoot;
         }
 
         // Update contract storage
@@ -130,7 +130,7 @@ contract HeadersProcessor is IHeadersProcessor {
 
         (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(keccakHash, lastPeaks, lastElementsCount, lastRoot);
 
-        emit AccumulatorUpdate(keccakHash, processedBlockNumber, ++mmrLatestUpdateId);
+        emit AccumulatorUpdate(keccakHash, processedBlockNumber, mmrLatestUpdateId++);
 
         // Update contract storage
         mmrTreeSizeToRoot[nextElementsCount] = nextRoot;

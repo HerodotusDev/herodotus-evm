@@ -28,6 +28,8 @@ contract FactsRegistry_Test is Test {
 
     CommitmentsInbox private commitmentsInbox;
 
+    event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
+
     constructor() {
         owner = new EOA();
 
@@ -76,10 +78,14 @@ contract FactsRegistry_Test is Test {
 
         factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), headersProcessor.mmrElementsCount(), new bytes32[](0), peaks, headerRlp, proof);
 
-        assertEq(factsRegistry.accountBalances(account, blockNumber), 0);
-        assertEq(factsRegistry.accountNonces(account, blockNumber), 0);
-        assertEq(factsRegistry.accountStorageHashes(account, blockNumber), EMPTY_TRIE_ROOT_HASH);
-        assertEq(factsRegistry.accountCodeHashes(account, blockNumber), EMPTY_CODE_HASH);
+        uint256 balance = factsRegistry.accountBalances(account, blockNumber);
+        uint256 nonce = factsRegistry.accountNonces(account, blockNumber);
+        bytes32 storageHash = factsRegistry.accountStorageHashes(account, blockNumber);
+        bytes32 codeHash = factsRegistry.accountCodeHashes(account, blockNumber);
+        assertEq(balance, 0);
+        assertEq(nonce, 0);
+        assertEq(storageHash, EMPTY_TRIE_ROOT_HASH);
+        assertEq(codeHash, EMPTY_CODE_HASH);
     }
 
     function test_proveAccount_nonEmptyAccount() public {
@@ -98,12 +104,25 @@ contract FactsRegistry_Test is Test {
         uint256 blockNumber = 7583802;
         address account = address(uint160(uint256(0x007b2f05cE9aE365c3DBF30657e2DC6449989e83D6)));
 
+        vm.expectEmit(true, true, true, true);
+        emit AccountProven(
+            account,
+            blockNumber,
+            1,
+            0,
+            0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c,
+            0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185
+        );
         factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), headersProcessor.mmrElementsCount(), new bytes32[](0), peaks, headerRlp, proof);
 
-        assertEq(factsRegistry.accountBalances(account, blockNumber), 0);
-        assertEq(factsRegistry.accountNonces(account, blockNumber), 1);
-        assertEq(factsRegistry.accountStorageHashes(account, blockNumber), 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
-        assertEq(factsRegistry.accountCodeHashes(account, blockNumber), 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c);
+        uint256 balance = factsRegistry.accountBalances(account, blockNumber);
+        uint256 nonce = factsRegistry.accountNonces(account, blockNumber);
+        bytes32 storageHash = factsRegistry.accountStorageHashes(account, blockNumber);
+        bytes32 codeHash = factsRegistry.accountCodeHashes(account, blockNumber);
+        assertEq(balance, 0);
+        assertEq(nonce, 1);
+        assertEq(storageHash, 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
+        assertEq(codeHash, 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c);
     }
 
     function test_proveAccount_revert() public {

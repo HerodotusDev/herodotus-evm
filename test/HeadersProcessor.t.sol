@@ -48,7 +48,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp), blockNumber, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp), blockNumber, 0);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
         assertEq(headersProcessor.mmrLatestUpdateId(), 1);
@@ -65,7 +65,7 @@ contract HeadersProcessor_Processing_Test is Test {
         assertEq(headersProcessor.mmrElementsCount(), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
 
@@ -84,7 +84,7 @@ contract HeadersProcessor_Processing_Test is Test {
         headersProcessor.receiveParentHash(initialParentHashSentForBlock - 1, parentHash);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 2);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
         headersProcessor.processBlockFromMessage(nextBlock, headerRlp_2, nextPeaks);
         assertEq(headersProcessor.mmrElementsCount(), 3);
         assertEq(headersProcessor.mmrLatestUpdateId(), 2);
@@ -101,7 +101,7 @@ contract HeadersProcessor_Processing_Test is Test {
         assertEq(headersProcessor.mmrElementsCount(), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
 
@@ -119,7 +119,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes32 leafValue = keccak256(headerRlp_1);
         bytes32[] memory proof = new bytes32[](0);
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 2);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
         headersProcessor.processBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headerRlp_2);
     }
 
@@ -132,7 +132,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
         headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrElementsCount(), 1);
         assertEq(headersProcessor.mmrLatestUpdateId(), 1);
@@ -177,9 +177,9 @@ contract HeadersProcessor_Processing_Test is Test {
         vm.expectEmit(true, true, true, true);
         vm.expectEmit(true, true, true, true);
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 2);
-        emit AccumulatorUpdate(keccak256(headerRlp_3), nextBlock2, 3);
-        emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 4);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp_3), nextBlock2, 2);
+        emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 3);
         headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
         assertEq(headersProcessor.mmrElementsCount(), 7);
         assertEq(headersProcessor.mmrLatestUpdateId(), 4);
