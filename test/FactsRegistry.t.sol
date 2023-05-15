@@ -14,6 +14,8 @@ import {FactsRegistry} from "../src/FactsRegistry.sol";
 import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 import {MsgSignerMock} from "./mocks/MsgSignerMock.sol";
 
+import {ReceiptProofs} from "../src/lib/ReceiptProofs.sol";
+
 contract FactsRegistry_Test is Test {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // TODO replace with proper value
@@ -224,5 +226,24 @@ contract FactsRegistry_Test is Test {
 
         bytes32 value = factsRegistry.proveStorage(account, blockNumber, slot, storageProof);
         assertEq(value, bytes32(uint256(uint160(0x00ef7b1e0ddea68cad3d74fbb7a03e6ccde3091286))));
+    }
+
+    function test_proveReceipt() public {
+        // ALCHEMY_URL w/ a Mainnet RPC should be set in .env
+        string[] memory rlp_inputs = new string[](3);
+        rlp_inputs[0] = "node";
+        rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs[2] = "13843670";
+        bytes memory headerRlp = vm.ffi(rlp_inputs);
+
+        uint256 transactionIndex = 0xba;
+
+        string[] memory receiptProofInputs = new string[](3);
+        receiptProofInputs[0] = "node";
+        receiptProofInputs[1] = "./helpers/fetch_receipts_proof.js";
+        receiptProofInputs[2] = "0xd33cd6";
+        bytes memory receiptProof = vm.ffi(receiptProofInputs);
+
+        ReceiptProofs.verify(headerRlp, transactionIndex, receiptProof);
     }
 }
