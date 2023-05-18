@@ -12,84 +12,57 @@ import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
-import {IMsgSigner} from "../src/interfaces/IMsgSigner.sol";
+import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 
 import {Secp256k1MsgSigner} from "../src/msg-signers/Secp256k1MsgSigner.sol";
-
-contract HeadersProcessorMock is IHeadersProcessor {
-    mapping(uint256 => bytes32) public parentHashes;
-
-    function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external {
-        parentHashes[blockNumber] = parentHash;
-    }
-
-    function receivedParentHashes(uint256 blockNumber) external view returns (bytes32) {
-        return parentHashes[blockNumber];
-    }
-}
-
-contract MsgSignerMock is IMsgSigner {
-    function verify(bytes32 hash, bytes calldata sig) external view {}
-
-    function signingKey() external pure returns (bytes32) {
-        return bytes32(0);
-    }
-}
+import {MsgSignerMock} from "./mocks/MsgSignerMock.sol";
 
 contract CommitmentsInbox_OptimiticRelaying_Test is Test {
-    EOA private relayer;
     EOA private owner;
     WETHMock private collateral;
 
-    HeadersProcessorMock private headersProcessor;
+    HeadersProcessor private headersProcessor;
     MsgSignerMock private msgSigner;
 
     CommitmentsInbox private commitmentsInbox;
 
     constructor() {
-        relayer = new EOA();
         owner = new EOA();
 
         collateral = new WETHMock();
-        headersProcessor = new HeadersProcessorMock();
         msgSigner = new MsgSignerMock();
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
+        headersProcessor = new HeadersProcessor(commitmentsInbox);
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_receiveOptimisticMessage() public {
         bytes memory signature = "0x";
         commitmentsInbox.receiveOptimisticMessage(bytes32(uint256(1)), 1, signature);
-        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
+        assertEq(headersProcessor.receivedParentHashes(1), bytes32(uint256(1)));
     }
 }
 
 contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
-    EOA private relayer;
     EOA private owner;
     EOA private crossdomainDelivery;
     WETHMock private collateral;
 
-    HeadersProcessorMock private headersProcessor;
+    HeadersProcessor private headersProcessor;
     MsgSignerMock private msgSigner;
 
     CommitmentsInbox private commitmentsInbox;
 
     constructor() {
-        relayer = new EOA();
         owner = new EOA();
 
         collateral = new WETHMock();
-        headersProcessor = new HeadersProcessorMock();
         msgSigner = new MsgSignerMock();
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(crossdomainDelivery));
+        headersProcessor = new HeadersProcessor(commitmentsInbox);
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_fail_receiveCrossdomainMessage_notCrossdomainMsgSender() public {
@@ -101,7 +74,7 @@ contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
     function test_receiveCrossdomainMessage_messageSets() public {
         vm.prank(address(crossdomainDelivery));
         commitmentsInbox.receiveCrossdomainMessage(bytes32(uint256(1)), 1, address(0));
-        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
+        assertEq(headersProcessor.receivedParentHashes(1), bytes32(uint256(1)));
     }
 
     function test_receiveCrossdomainMessage_fraudDetection() public {
@@ -113,7 +86,7 @@ contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
         vm.prank(address(crossdomainDelivery));
         // vm.expectEmit(false, false, false, true); TODO fix this
         commitmentsInbox.receiveCrossdomainMessage(bytes32(uint256(2)), 1, address(0));
-        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(2)));
+        assertEq(headersProcessor.receivedParentHashes(1), bytes32(uint256(2)));
     }
 }
 
@@ -122,7 +95,7 @@ contract CommitmentsInbox_Staking_Test is Test {
     EOA private owner;
     WETHMock private collateral;
 
-    HeadersProcessorMock private headersProcessor;
+    HeadersProcessor private headersProcessor;
     MsgSignerMock private msgSigner;
 
     CommitmentsInbox private commitmentsInbox;
@@ -134,13 +107,11 @@ contract CommitmentsInbox_Staking_Test is Test {
         owner = new EOA();
 
         collateral = new WETHMock();
-        headersProcessor = new HeadersProcessorMock();
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), _collateralRequirement, address(owner), address(0));
-        vm.startPrank(address(owner));
+        headersProcessor = new HeadersProcessor(commitmentsInbox);
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_stake() public {
@@ -153,7 +124,7 @@ contract CommitmentsInbox_Staking_Test is Test {
         bytes memory signature = "0x";
         _stake(signature);
         commitmentsInbox.receiveOptimisticMessage(bytes32(uint256(1)), 1, signature);
-        assertEq(headersProcessor.parentHashes(1), bytes32(uint256(1)));
+        assertEq(headersProcessor.receivedParentHashes(1), bytes32(uint256(1)));
     }
 
     function test_fail_receiveOptimisticMessage_notStaked() public {
@@ -177,11 +148,10 @@ contract CommitmentsInbox_Signing_Test is Test {
     CommitmentsInbox private commitmentsInbox;
     Secp256k1MsgSigner private msgSigner;
 
-    EOA private relayer;
     EOA private owner;
     WETHMock private collateral;
 
-    HeadersProcessorMock private headersProcessor;
+    HeadersProcessor private headersProcessor;
 
     constructor() {
         string[] memory getAddress_inputs = new string[](2);
@@ -191,17 +161,14 @@ contract CommitmentsInbox_Signing_Test is Test {
 
         (address account, ) = abi.decode(result, (address, uint256));
 
-        relayer = new EOA();
         owner = new EOA();
 
         collateral = new WETHMock();
-        headersProcessor = new HeadersProcessorMock();
         msgSigner = new Secp256k1MsgSigner(account, address(1));
 
-        vm.startPrank(address(owner));
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
+        headersProcessor = new HeadersProcessor(commitmentsInbox);
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.stopPrank();
     }
 
     function test_receiveOptimisticMessage() public {

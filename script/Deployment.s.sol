@@ -10,7 +10,7 @@ import {Secp256k1MsgSigner} from "../src/msg-signers/Secp256k1MsgSigner.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
-import {IHeadersStorage} from "../src/interfaces/IHeadersStorage.sol";
+import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
 
 import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
 
@@ -40,7 +40,7 @@ contract Deployment is Script {
         CommitmentsInbox commitmentsInbox = new CommitmentsInbox(IMsgSigner(predictedSigner), IERC20(predictedWethMock), 0, address(this), address(0));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
         new Secp256k1MsgSigner(deployer, deployer);
-        new FactsRegistry(IHeadersStorage(predictedHeadersProcessor));
+        new FactsRegistry(IHeadersProcessor(predictedHeadersProcessor));
         new WETHMock();
 
         vm.stopBroadcast();

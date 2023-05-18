@@ -6,6 +6,12 @@ interface IFactsRegistry {
         uint16 paramsBitmap,
         uint256 blockNumber,
         address account,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized,
         bytes calldata proof
     ) external;
 

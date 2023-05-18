@@ -12,14 +12,14 @@ async function main() {
   const blockNumber = Number(arg);
 
   let header;
-  if (!OFFLINE) {
+  if (!OFFLINE || OFFLINE === "false") {
     const rpcBody = {
       jsonrpc: "2.0",
       method: "eth_getBlockByNumber",
       params: ["0x" + blockNumber.toString(16), false],
       id: 0,
     };
-    const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody));
+    const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody), { headers: { "Content-Type": "application/json" } });
     header = rpcResponse.data.result;
   } else {
     const cached = require("./cached_headers.json");
@@ -38,7 +38,7 @@ async function main() {
     header.difficulty === "0x0" ? "0x" : header.difficulty,
     header.number,
     header.gasLimit,
-    header.gasUsed,
+    header.gasUsed === "0x0" ? "0x" : header.gasUsed,
     header.timestamp,
     header.extraData,
     header.mixHash,
@@ -49,10 +49,13 @@ async function main() {
     data.push(header.baseFeePerGas);
   }
 
+  const isMalicious = process.argv[3] === "malicious";
+  if (isMalicious) {
+    data[3] = "0x4f8a2f80c6496e18bd911ba09b6cbb01e78b7637845c69253f2eec2875a67278"; // Fake state root
+  }
   const headerRlp = "0x" + RLP.encode(data).toString("hex");
-
   const actualHash = keccak256(headerRlp);
-  if (actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
+  if (!isMalicious && actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
   console.log(headerRlp);
 }
 

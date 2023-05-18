@@ -8,14 +8,19 @@ import {EOA} from "./helpers/EOA.sol";
 
 import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
+import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
 contract HeadersProcessor_Processing_Test is Test {
+    using EVMHeaderRLP for bytes;
     using Strings for uint256;
 
     EOA private commitmentsInbox;
     HeadersProcessor private headersProcessor;
 
     uint256 initialParentHashSentForBlock = 7583803;
+
+    // Emitted event after each successful `append` operation
+    event AccumulatorUpdate(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
 
     constructor() {
         string[] memory inputs = new string[](4);
@@ -33,7 +38,7 @@ contract HeadersProcessor_Processing_Test is Test {
         headersProcessor.receiveParentHash(initialParentHashSentForBlock, parentHash);
     }
 
-    function test_processBlock_fromVerifiedHash() public {
+    function test_processBlockFromMessage_fromVerifiedHash() public {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
 
         string[] memory rlp_inputs = new string[](3);
@@ -42,17 +47,47 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs[2] = blockNumber.toString();
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        headersProcessor.processBlock(0, blockNumber, headerRlp);
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp), blockNumber, 0);
+        headersProcessor.processBlockFromMessage(blockNumber, headerRlp, new bytes32[](0));
+        assertEq(headersProcessor.mmrElementsCount(), 1);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
+    }
 
-        string[] memory parentHash_inputs = new string[](4);
-        parentHash_inputs[0] = "node";
-        parentHash_inputs[1] = "./helpers/fetch_header_prop.js";
-        parentHash_inputs[2] = blockNumber.toString();
-        parentHash_inputs[3] = "parentHash";
-        bytes memory expectedParentHashBytes = vm.ffi(parentHash_inputs);
-        bytes32 expectedParentHash = bytes32(expectedParentHashBytes);
+    function test_processBlockFromMessage() public {
+        uint256 blockNumber = initialParentHashSentForBlock - 1;
+        string[] memory rlp_inputs_1 = new string[](3);
+        rlp_inputs_1[0] = "node";
+        rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_1[2] = blockNumber.toString();
+        bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
-        assertEq(headersProcessor.parentHashes(blockNumber), expectedParentHash);
+        assertEq(headersProcessor.mmrElementsCount(), 0);
+
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
+        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
+        assertEq(headersProcessor.mmrElementsCount(), 1);
+
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
+
+        uint256 nextBlock = blockNumber - 1;
+        string[] memory rlp_inputs_2 = new string[](3);
+        rlp_inputs_2[0] = "node";
+        rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_2[2] = nextBlock.toString();
+        bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
+
+        bytes32 parentHash = headerRlp_1.getParentHash();
+        vm.prank(address(commitmentsInbox));
+        headersProcessor.receiveParentHash(initialParentHashSentForBlock - 1, parentHash);
+
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
+        headersProcessor.processBlockFromMessage(nextBlock, headerRlp_2, nextPeaks);
+        assertEq(headersProcessor.mmrElementsCount(), 3);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 2);
     }
 
     function test_processBlock() public {
@@ -62,7 +97,16 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
         rlp_inputs_1[2] = blockNumber.toString();
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
-        headersProcessor.processBlock(0, blockNumber, headerRlp_1);
+
+        assertEq(headersProcessor.mmrElementsCount(), 0);
+
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
+        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
+        assertEq(headersProcessor.mmrElementsCount(), 1);
+
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
 
         uint256 nextBlock = blockNumber - 1;
         string[] memory rlp_inputs_2 = new string[](3);
@@ -70,109 +114,127 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
         rlp_inputs_2[2] = nextBlock.toString();
         bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
-        headersProcessor.processBlock(0, nextBlock, headerRlp_2);
 
-        string[] memory parentHash_inputs = new string[](4);
-        parentHash_inputs[0] = "node";
-        parentHash_inputs[1] = "./helpers/fetch_header_prop.js";
-        parentHash_inputs[2] = nextBlock.toString();
-        parentHash_inputs[3] = "parentHash";
-        bytes memory expectedParentHashBytes = vm.ffi(parentHash_inputs);
-        bytes32 expectedParentHash = bytes32(expectedParentHashBytes);
-
-        assertEq(headersProcessor.parentHashes(nextBlock), expectedParentHash);
+        uint256 leafIndex = 1;
+        bytes32 leafValue = keccak256(headerRlp_1);
+        bytes32[] memory proof = new bytes32[](0);
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
+        headersProcessor.processBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headerRlp_2);
     }
 
-    function test_processBlock_settingUnclesHash() public {
+    function test_processTillBlock_setup() public returns (bytes memory) {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
+        string[] memory rlp_inputs_1 = new string[](3);
+        rlp_inputs_1[0] = "node";
+        rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_1[2] = blockNumber.toString();
+        bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
-        string[] memory rlp_inputs = new string[](3);
-        rlp_inputs[0] = "node";
-        rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs[2] = blockNumber.toString();
-        bytes memory headerRlp = vm.ffi(rlp_inputs);
-
-        uint16 bitmap = 2; // 0b10
-        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
-
-        string[] memory unclesHash_inputs = new string[](4);
-        unclesHash_inputs[0] = "node";
-        unclesHash_inputs[1] = "./helpers/fetch_header_prop.js";
-        unclesHash_inputs[2] = blockNumber.toString();
-        unclesHash_inputs[3] = "sha3Uncles";
-        bytes memory expectedUnclesHashBytes = vm.ffi(unclesHash_inputs);
-        bytes32 expectedUnclesHash = bytes32(expectedUnclesHashBytes);
-
-        assertEq(headersProcessor.unclesHashes(blockNumber), expectedUnclesHash);
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
+        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
+        assertEq(headersProcessor.mmrElementsCount(), 1);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
+        return headerRlp_1;
     }
 
-    function test_processBlock_settingStateRoot() public {
+    function test_processTillBlock() public {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
+        bytes memory headerRlp_1 = test_processTillBlock_setup();
 
-        string[] memory rlp_inputs = new string[](3);
-        rlp_inputs[0] = "node";
-        rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs[2] = blockNumber.toString();
-        bytes memory headerRlp = vm.ffi(rlp_inputs);
+        uint256 nextBlock = blockNumber - 1;
+        string[] memory rlp_inputs_2 = new string[](3);
+        rlp_inputs_2[0] = "node";
+        rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_2[2] = nextBlock.toString();
+        bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
 
-        uint16 bitmap = 8; // 0b1000
-        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
+        uint256 nextBlock2 = blockNumber - 2;
+        string[] memory rlp_inputs_3 = new string[](3);
+        rlp_inputs_3[0] = "node";
+        rlp_inputs_3[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_3[2] = nextBlock2.toString();
+        bytes memory headerRlp_3 = vm.ffi(rlp_inputs_3);
 
-        string[] memory stateRoot_inputs = new string[](4);
-        stateRoot_inputs[0] = "node";
-        stateRoot_inputs[1] = "./helpers/fetch_header_prop.js";
-        stateRoot_inputs[2] = blockNumber.toString();
-        stateRoot_inputs[3] = "stateRoot";
-        bytes memory expectedStateRootBytes = vm.ffi(stateRoot_inputs);
-        bytes32 expectedStateRoot = bytes32(expectedStateRootBytes);
+        uint256 nextBlock3 = blockNumber - 3;
+        string[] memory rlp_inputs_4 = new string[](3);
+        rlp_inputs_4[0] = "node";
+        rlp_inputs_4[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_4[2] = nextBlock3.toString();
+        bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
 
-        assertEq(headersProcessor.stateRoots(blockNumber), expectedStateRoot);
+        uint256 leafIndex = 1;
+        bytes32 leafValue = keccak256(headerRlp_1);
+        bytes32[] memory proof = new bytes32[](0);
+        bytes[] memory headersToAppend = new bytes[](3);
+        headersToAppend[0] = headerRlp_2;
+        headersToAppend[1] = headerRlp_3;
+        headersToAppend[2] = headerRlp_4;
+
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
+        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true);
+        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
+        emit AccumulatorUpdate(keccak256(headerRlp_3), nextBlock2, 2);
+        emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 3);
+        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
+        assertEq(headersProcessor.mmrElementsCount(), 7);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 4);
     }
 
-    function test_processBlock_settingTransactionsRoot() public {
+    function test_processBlock_expect_revert() public {
         uint256 blockNumber = initialParentHashSentForBlock - 1;
+        bytes memory headerRlp_1 = test_processTillBlock_setup();
 
-        string[] memory rlp_inputs = new string[](3);
-        rlp_inputs[0] = "node";
-        rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs[2] = blockNumber.toString();
-        bytes memory headerRlp = vm.ffi(rlp_inputs);
+        uint256 nextBlock = blockNumber - 1;
+        string[] memory rlp_inputs_2 = new string[](3);
+        rlp_inputs_2[0] = "node";
+        rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_2[2] = nextBlock.toString();
+        bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
 
-        uint16 bitmap = 16; // 0b10000
-        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
+        uint256 nextBlock2 = blockNumber - 2;
+        string[] memory rlp_inputs_3 = new string[](3);
+        rlp_inputs_3[0] = "node";
+        rlp_inputs_3[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_3[2] = nextBlock2.toString();
+        bytes memory headerRlp_3 = vm.ffi(rlp_inputs_3);
 
-        string[] memory transactionsRoot_inputs = new string[](4);
-        transactionsRoot_inputs[0] = "node";
-        transactionsRoot_inputs[1] = "./helpers/fetch_header_prop.js";
-        transactionsRoot_inputs[2] = blockNumber.toString();
-        transactionsRoot_inputs[3] = "transactionsRoot";
-        bytes memory expectedTransactionsRootBytes = vm.ffi(transactionsRoot_inputs);
-        bytes32 expectedTransactionsRoot = bytes32(expectedTransactionsRootBytes);
+        uint256 nextBlock3 = blockNumber - 3;
+        string[] memory rlp_inputs_4 = new string[](3);
+        rlp_inputs_4[0] = "node";
+        rlp_inputs_4[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_4[2] = nextBlock3.toString();
+        bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
 
-        assertEq(headersProcessor.transactionsRoots(blockNumber), expectedTransactionsRoot);
-    }
+        uint256 leafIndex = 1;
+        bytes32 leafValue = keccak256(headerRlp_1);
+        bytes32[] memory proof = new bytes32[](0);
+        bytes[] memory headersToAppend = new bytes[](3);
+        headersToAppend[0] = headerRlp_2;
+        headersToAppend[1] = headerRlp_3;
+        headersToAppend[2] = headerRlp_4;
 
-    function test_processBlock_settingReceiptsRoot() public {
-        uint256 blockNumber = initialParentHashSentForBlock - 1;
+        // Test malicious RLP
+        string[] memory rlp_inputs_5 = new string[](4);
+        rlp_inputs_5[0] = "node";
+        rlp_inputs_5[1] = "./helpers/fetch_header_rlp.js";
+        rlp_inputs_5[2] = nextBlock3.toString();
+        rlp_inputs_5[3] = "malicious";
+        bytes memory headerRlp_4_malicious = vm.ffi(rlp_inputs_5);
+        bytes[] memory headersToAppend2 = new bytes[](3);
+        headersToAppend2[0] = headerRlp_2;
+        headersToAppend2[1] = headerRlp_3;
+        headersToAppend2[2] = headerRlp_4_malicious;
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
 
-        string[] memory rlp_inputs = new string[](3);
-        rlp_inputs[0] = "node";
-        rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs[2] = blockNumber.toString();
-        bytes memory headerRlp = vm.ffi(rlp_inputs);
-
-        uint16 bitmap = 32; // 0b100000
-        headersProcessor.processBlock(bitmap, blockNumber, headerRlp);
-
-        string[] memory receiptsRoot_inputs = new string[](4);
-        receiptsRoot_inputs[0] = "node";
-        receiptsRoot_inputs[1] = "./helpers/fetch_header_prop.js";
-        receiptsRoot_inputs[2] = blockNumber.toString();
-        receiptsRoot_inputs[3] = "receiptsRoot";
-        bytes memory expectedReceiptsRootBytes = vm.ffi(receiptsRoot_inputs);
-        bytes32 expectedReceiptsRoot = bytes32(expectedReceiptsRootBytes);
-
-        assertEq(headersProcessor.receiptsRoots(blockNumber), expectedReceiptsRoot);
+        vm.expectRevert("ERR_INVALID_CHAIN_ELEMENT");
+        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
     }
 }
 
@@ -191,6 +253,7 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         vm.prank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(blockNumber, parentHash);
         assertEq(headersProcessor.receivedParentHashes(blockNumber), parentHash);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
     }
 
     function test_fail_receiveParentHash_notCommitmentsInbox() public {
@@ -198,5 +261,6 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         bytes32 parentHash = "parent";
         vm.expectRevert("ERR_ONLY_INBOX");
         headersProcessor.receiveParentHash(blockNumber, parentHash);
+        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
     }
 }
