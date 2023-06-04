@@ -32,10 +32,33 @@ contract FactsRegistry is IFactsRegistry {
     mapping(address => mapping(uint256 => bytes32)) public accountCodeHashes;
     mapping(address => mapping(uint256 => bytes32)) public accountStorageHashes;
 
+    mapping(uint256 => bytes32) public receiptsRoots;
+
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
+
+    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
 
     constructor(IHeadersProcessor _headersProcessor) {
         headersProcessor = _headersProcessor;
+    }
+
+    function verifyMmrProof(
+        uint256 blockNumber,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized
+    ) internal view {
+        bytes32 mmrRoot = headersProcessor.mmrTreeSizeToRoot(mmrTreeSize);
+        require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
+
+        require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
+        StatelessMmr.verifyProof(blockProofLeafIndex, blockProofLeafValue, blockProof, mmrPeaks, mmrTreeSize, mmrRoot);
+
+        uint256 actualBlockNumber = headerSerialized.getBlockNumber();
+        require(actualBlockNumber == blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
     function proveAccount(
@@ -50,16 +73,9 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) external {
-        bytes32 mmrRoot = headersProcessor.mmrTreeSizeToRoot(mmrTreeSize);
-        require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
-
-        require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
-        StatelessMmr.verifyProof(blockProofLeafIndex, blockProofLeafValue, blockProof, mmrPeaks, mmrTreeSize, mmrRoot);
+        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 stateRoot = headerSerialized.getStateRoot();
-        uint256 actualBlockNumber = headerSerialized.getBlockNumber();
-        require(actualBlockNumber == blockNumber, "ERR_INVALID_BLOCK_NUMBER");
-
         bytes32 proofPath = keccak256(abi.encodePacked(account));
         bytes memory accountRLP = proof.verify(stateRoot, proofPath);
 
@@ -110,10 +126,31 @@ contract FactsRegistry is IFactsRegistry {
         }
     }
 
-    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) public view returns (bytes32) {
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external view returns (bytes32) {
         bytes32 root = accountStorageHashes[account][blockNumber];
         require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
         bytes32 proofPath = keccak256(abi.encodePacked(slot));
         return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
+    }
+
+    function proveTransactionReceipt(
+        uint256 blockNumber,
+        bytes32 rlpEncodedTxIndex,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized,
+        bytes calldata proof
+    ) external {
+        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+
+        bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
+        require(receiptsRoot != bytes32(0), "ERR_EMPTY_RECEIPTS_ROOT");
+        receiptsRoots[blockNumber] = receiptsRoot;
+
+        bytes memory receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
+        emit TransactionProven(blockNumber, rlpEncodedTxIndex, receiptRlp);
     }
 }

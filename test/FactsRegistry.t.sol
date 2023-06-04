@@ -14,8 +14,6 @@ import {FactsRegistry} from "../src/FactsRegistry.sol";
 import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 import {MsgSignerMock} from "./mocks/MsgSignerMock.sol";
 
-import {ReceiptProofs} from "../src/lib/ReceiptProofs.sol";
-
 contract FactsRegistry_Test is Test {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // TODO replace with proper value
@@ -32,6 +30,8 @@ contract FactsRegistry_Test is Test {
 
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
 
+    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
+
     constructor() {
         owner = new EOA();
 
@@ -41,9 +41,10 @@ contract FactsRegistry_Test is Test {
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
         headersProcessor = new HeadersProcessor(commitmentsInbox);
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
-        vm.prank(address(commitmentsInbox));
+        vm.startPrank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(7583803, 0x139d2f5b484e3ecb9e684096e93c6e6eb008a76ca7afa69aea3d91875c435604);
-
+        headersProcessor.receiveParentHash(6302344, 0x477fc2a372007f6423add99ce363034b68169946a1fc82934ebfdec9bd1a5981);
+        vm.stopPrank();
         factsRegistry = new FactsRegistry(headersProcessor);
     }
 
@@ -228,22 +229,104 @@ contract FactsRegistry_Test is Test {
         assertEq(value, bytes32(uint256(uint160(0x00ef7b1e0ddea68cad3d74fbb7a03e6ccde3091286))));
     }
 
+    // External helper function (used for test purposes only)
+    function encodeUint(uint256 value) internal pure returns (bytes memory) {
+        // allocate our result bytes
+        bytes memory result = new bytes(33);
+
+        if (value == 0) {
+            // store length = 1, value = 0x80
+            assembly {
+                mstore(add(result, 1), 0x180)
+            }
+            return result;
+        }
+
+        if (value < 128) {
+            // store length = 1, value = value
+            assembly {
+                mstore(add(result, 1), or(0x100, value))
+            }
+            return result;
+        }
+
+        if (value > 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) {
+            // length 33, prefix 0xa0 followed by value
+            assembly {
+                mstore(add(result, 1), 0x21a0)
+                mstore(add(result, 33), value)
+            }
+            return result;
+        }
+
+        if (value > 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) {
+            // length 32, prefix 0x9f followed by value
+            assembly {
+                mstore(add(result, 1), 0x209f)
+                mstore(add(result, 33), shl(8, value))
+            }
+            return result;
+        }
+
+        assembly {
+            let length := 1
+            for {
+                let min := 0x100
+            } lt(sub(min, 1), value) {
+                min := shl(8, min)
+            } {
+                length := add(length, 1)
+            }
+
+            let bytesLength := add(length, 1)
+
+            // bytes length field
+            let hi := shl(mul(bytesLength, 8), bytesLength)
+
+            // rlp encoding of value
+            let lo := or(shl(mul(length, 8), add(length, 0x80)), value)
+
+            mstore(add(result, bytesLength), or(hi, lo))
+        }
+        return result;
+    }
+
     function test_proveReceipt() public {
-        // ALCHEMY_URL w/ a Mainnet RPC should be set in .env
         string[] memory rlp_inputs = new string[](3);
         rlp_inputs[0] = "node";
         rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs[2] = "13843670";
+        rlp_inputs[2] = "6302343";
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        uint256 transactionIndex = 0xba;
+        headersProcessor.processBlockFromMessage(6302343, headerRlp, new bytes32[](0));
+
+        bytes32[] memory nextPeaks = new bytes32[](1);
+        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp)));
 
         string[] memory receiptProofInputs = new string[](3);
         receiptProofInputs[0] = "node";
         receiptProofInputs[1] = "./helpers/fetch_receipts_proof.js";
-        receiptProofInputs[2] = "0xd33cd6";
+        receiptProofInputs[2] = "0x602a87";
         bytes memory receiptProof = vm.ffi(receiptProofInputs);
 
-        ReceiptProofs.verify(headerRlp, transactionIndex, receiptProof);
+        uint256 transactionIndex = 0x31;
+        bytes32 rlpEncodedTxIndex = bytes32(encodeUint(transactionIndex));
+
+        bytes
+            memory expectedEncodedRlp = hex"02f9010901836271b0b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0";
+
+        vm.expectEmit(true, true, true, true);
+        emit TransactionProven(6302343, rlpEncodedTxIndex, expectedEncodedRlp);
+        factsRegistry.proveTransactionReceipt(
+            6302343,
+            rlpEncodedTxIndex,
+            1,
+            keccak256(headerRlp),
+            headersProcessor.mmrElementsCount(),
+            new bytes32[](0),
+            nextPeaks,
+            headerRlp,
+            receiptProof
+        );
     }
 }

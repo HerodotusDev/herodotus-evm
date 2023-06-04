@@ -49,6 +49,10 @@ async function main() {
     data.push(header.baseFeePerGas);
   }
 
+  if (header.withdrawalsRoot) {
+    data.push(header.withdrawalsRoot);
+  }
+
   const isMalicious = process.argv[3] === "malicious";
   if (isMalicious) {
     data[3] = "0x4f8a2f80c6496e18bd911ba09b6cbb01e78b7637845c69253f2eec2875a67278"; // Fake state root
