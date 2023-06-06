@@ -140,7 +140,7 @@ contract FactsRegistry is IFactsRegistry {
         return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
     }
 
-    function removeFirstNibble(bytes memory input) public pure returns (bytes memory) {
+    function removeFirstNibble(bytes memory input) internal pure returns (bytes memory) {
         require(input.length > 0, "Input cannot be empty");
 
         bytes memory output = new bytes(input.length - 1);
