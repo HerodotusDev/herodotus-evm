@@ -13,11 +13,7 @@ library TrieProofs {
 
     bytes32 internal constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
 
-    function verify(
-        bytes memory proofRLP,
-        bytes32 rootHash,
-        bytes32 path32
-    ) internal pure returns (bytes memory value) {
+    function verify(bytes memory proofRLP, bytes32 rootHash, bytes32 path32) internal pure returns (bytes memory value) {
         // TODO: Optimize by using word-size paths instead of byte arrays
         bytes memory path = new bytes(32);
         assembly {
@@ -75,7 +71,7 @@ library TrieProofs {
 
                 // last proof item
                 if (i == proof.length - 1) {
-                    require(pathOffset == path.length, "Unexpected end of proof (leaf)");
+                    require(pathOffset == countTraversedBytes(path32), "Unexpected end of proof (leaf)");
                     return node[1].toBytes(); // Data is the second item in a leaf node
                 } else {
                     // not last proof item
@@ -122,6 +118,16 @@ library TrieProofs {
 
         // no invalid proof should ever reach this point
         assert(false);
+    }
+
+    function countTraversedBytes(bytes32 p) internal pure returns (uint256) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < 32; i++) {
+            if ((p[i] != 0)) {
+                count++;
+            }
+        }
+        return count * 2;
     }
 
     function getNextHash(RLP.RLPItem memory node) internal pure returns (bytes32 nextHash) {
@@ -183,11 +189,7 @@ library TrieProofs {
         return decodeNibbles(compact, skipNibbles);
     }
 
-    function sharedPrefixLength(
-        uint256 xsOffset,
-        bytes memory xs,
-        bytes memory ys
-    ) internal pure returns (uint256) {
+    function sharedPrefixLength(uint256 xsOffset, bytes memory xs, bytes memory ys) internal pure returns (uint256) {
         uint256 i = 0;
         for (i = 0; i + xsOffset < xs.length && i < ys.length; i++) {
             if (xs[i + xsOffset] != ys[i]) {

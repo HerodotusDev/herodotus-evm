@@ -34,8 +34,38 @@ contract FactsRegistry is IFactsRegistry {
 
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
 
+    // transactionStatus mapping
+    mapping(uint256 => mapping(bytes32 => uint256)) public transactionStatuses;
+    // cumulativeGasUsed mapping
+    mapping(uint256 => mapping(bytes32 => uint256)) public transactionsCumulativeGasUsed;
+    // logsBloom mapping
+    mapping(uint256 => mapping(bytes32 => bytes)) public transactionsLogsBlooms;
+    // logs mapping
+    mapping(uint256 => mapping(bytes32 => bytes)) public transactionsLogs;
+
+    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
+
     constructor(IHeadersProcessor _headersProcessor) {
         headersProcessor = _headersProcessor;
+    }
+
+    function verifyMmrProof(
+        uint256 blockNumber,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized
+    ) internal view {
+        bytes32 mmrRoot = headersProcessor.mmrTreeSizeToRoot(mmrTreeSize);
+        require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
+
+        require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
+        StatelessMmr.verifyProof(blockProofLeafIndex, blockProofLeafValue, blockProof, mmrPeaks, mmrTreeSize, mmrRoot);
+
+        uint256 actualBlockNumber = headerSerialized.getBlockNumber();
+        require(actualBlockNumber == blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
     function proveAccount(
@@ -50,16 +80,9 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) external {
-        bytes32 mmrRoot = headersProcessor.mmrTreeSizeToRoot(mmrTreeSize);
-        require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
-
-        require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
-        StatelessMmr.verifyProof(blockProofLeafIndex, blockProofLeafValue, blockProof, mmrPeaks, mmrTreeSize, mmrRoot);
+        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 stateRoot = headerSerialized.getStateRoot();
-        uint256 actualBlockNumber = headerSerialized.getBlockNumber();
-        require(actualBlockNumber == blockNumber, "ERR_INVALID_BLOCK_NUMBER");
-
         bytes32 proofPath = keccak256(abi.encodePacked(account));
         bytes memory accountRLP = proof.verify(stateRoot, proofPath);
 
@@ -110,10 +133,82 @@ contract FactsRegistry is IFactsRegistry {
         }
     }
 
-    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) public view returns (bytes32) {
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external view returns (bytes32) {
         bytes32 root = accountStorageHashes[account][blockNumber];
         require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
         bytes32 proofPath = keccak256(abi.encodePacked(slot));
         return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
+    }
+
+    function removeFirstNibble(bytes memory input) public pure returns (bytes memory) {
+        require(input.length > 0, "Input cannot be empty");
+
+        bytes memory output = new bytes(input.length - 1);
+        for (uint256 i = 1; i < input.length; i++) {
+            output[i - 1] = input[i];
+        }
+        return output;
+    }
+
+    function checkTransactionReceipt(
+        uint256 blockNumber,
+        bytes32 rlpEncodedTxIndex,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized,
+        bytes calldata proof
+    ) public view returns (bytes memory receiptRlp) {
+        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+
+        bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
+
+        receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
+    }
+
+    function proveTransactionReceipt(
+        uint16 paramsBitmap,
+        uint256 blockNumber,
+        bytes32 rlpEncodedTxIndex,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized,
+        bytes calldata proof
+    ) external returns (bytes memory receiptRlp) {
+        receiptRlp = checkTransactionReceipt(blockNumber, rlpEncodedTxIndex, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized, proof);
+
+        if (receiptRlp[0] == 0x02) {
+            receiptRlp = removeFirstNibble(receiptRlp);
+        }
+
+        RLP.RLPItem[] memory receiptItems = receiptRlp.toRLPItem().toList();
+        require(receiptItems.length == 4, "ERR_INVALID_RECEIPT_RLP");
+
+        // Store transaction status
+        if (paramsBitmap.readBitAtIndexFromRight(0)) {
+            transactionStatuses[blockNumber][rlpEncodedTxIndex] = receiptItems[0].toUint();
+        }
+
+        // Store cumulative gas used
+        if (paramsBitmap.readBitAtIndexFromRight(1)) {
+            transactionsCumulativeGasUsed[blockNumber][rlpEncodedTxIndex] = receiptItems[1].toUint();
+        }
+
+        // Store logs bloom
+        if (paramsBitmap.readBitAtIndexFromRight(2)) {
+            transactionsLogsBlooms[blockNumber][rlpEncodedTxIndex] = receiptItems[2].toBytes();
+        }
+
+        // Store logs
+        if (paramsBitmap.readBitAtIndexFromRight(3)) {
+            transactionsLogs[blockNumber][rlpEncodedTxIndex] = receiptItems[3].toRLPBytes();
+        }
+
+        emit TransactionProven(blockNumber, rlpEncodedTxIndex, receiptRlp);
     }
 }

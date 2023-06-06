@@ -4,12 +4,16 @@ const axios = require("axios");
 const RLP = require("rlp");
 
 async function main() {
-  const { ALCHEMY_URL, OFFLINE } = process.env;
+  const { ALCHEMY_URL, OFFLINE, ALCHEMY_URL_MAINNET } = process.env;
   if (!ALCHEMY_URL) throw new Error(`ALCHEMY_URL has not been provided`);
 
   const arg = process.argv[2];
   if (!arg) throw new Error("Block number has not been provided");
   const blockNumber = Number(arg);
+
+  const useMainnet = process.argv[3] === "mainnet";
+  if (useMainnet && !ALCHEMY_URL_MAINNET) throw new Error(`ALCHEMY_URL_MAINNET has not been provided`);
+  const providerUrl = useMainnet ? ALCHEMY_URL_MAINNET : process.env.ALCHEMY_URL;
 
   let header;
   if (!OFFLINE || OFFLINE === "false") {
@@ -19,7 +23,8 @@ async function main() {
       params: ["0x" + blockNumber.toString(16), false],
       id: 0,
     };
-    const rpcResponse = await axios.post(ALCHEMY_URL, JSON.stringify(rpcBody), { headers: { "Content-Type": "application/json" } });
+
+    const rpcResponse = await axios.post(providerUrl, JSON.stringify(rpcBody), { headers: { "Content-Type": "application/json" } });
     header = rpcResponse.data.result;
   } else {
     const cached = require("./cached_headers.json");
@@ -47,6 +52,10 @@ async function main() {
 
   if (header.baseFeePerGas) {
     data.push(header.baseFeePerGas);
+  }
+
+  if (header.withdrawalsRoot) {
+    data.push(header.withdrawalsRoot);
   }
 
   const isMalicious = process.argv[3] === "malicious";
