@@ -1,5 +1,4 @@
 require("dotenv").config();
-// const axios = require("axios");
 const RLP = require("rlp");
 
 /**
@@ -11,9 +10,6 @@ function encodeProof(proof) {
 }
 
 async function main() {
-  //   const { ALCHEMY_URL } = process.env;
-  //   if (!ALCHEMY_URL) throw new Error(`ALCHEMY_URL has not been provided`);
-
   const blockArgStr = process.argv[2];
   if (!blockArgStr) throw new Error("Block number has not been provided");
 

@@ -32,9 +32,16 @@ contract FactsRegistry is IFactsRegistry {
     mapping(address => mapping(uint256 => bytes32)) public accountCodeHashes;
     mapping(address => mapping(uint256 => bytes32)) public accountStorageHashes;
 
-    mapping(uint256 => bytes32) public receiptsRoots;
-
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
+
+    // transactionStatus mapping
+    mapping(uint256 => mapping(bytes32 => uint256)) public transactionStatuses;
+    // cumulativeGasUsed mapping
+    mapping(uint256 => mapping(bytes32 => uint256)) public transactionsCumulativeGasUsed;
+    // logsBloom mapping
+    mapping(uint256 => mapping(bytes32 => bytes)) public transactionsLogsBlooms;
+    // logs mapping
+    mapping(uint256 => mapping(bytes32 => bytes)) public transactionsLogs;
 
     event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
 
@@ -133,7 +140,17 @@ contract FactsRegistry is IFactsRegistry {
         return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
     }
 
-    function proveTransactionReceipt(
+    function removeFirstNibble(bytes memory input) public pure returns (bytes memory) {
+        require(input.length > 0, "Input cannot be empty");
+
+        bytes memory output = new bytes(input.length - 1);
+        for (uint256 i = 1; i < input.length; i++) {
+            output[i - 1] = input[i];
+        }
+        return output;
+    }
+
+    function checkTransactionReceipt(
         uint256 blockNumber,
         bytes32 rlpEncodedTxIndex,
         uint256 blockProofLeafIndex,
@@ -143,14 +160,55 @@ contract FactsRegistry is IFactsRegistry {
         bytes32[] calldata mmrPeaks,
         bytes calldata headerSerialized,
         bytes calldata proof
-    ) external {
+    ) public view returns (bytes memory receiptRlp) {
         verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
-        require(receiptsRoot != bytes32(0), "ERR_EMPTY_RECEIPTS_ROOT");
-        receiptsRoots[blockNumber] = receiptsRoot;
 
-        bytes memory receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
+        receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
+    }
+
+    function proveTransactionReceipt(
+        uint16 paramsBitmap,
+        uint256 blockNumber,
+        bytes32 rlpEncodedTxIndex,
+        uint256 blockProofLeafIndex,
+        bytes32 blockProofLeafValue,
+        uint256 mmrTreeSize,
+        bytes32[] calldata blockProof,
+        bytes32[] calldata mmrPeaks,
+        bytes calldata headerSerialized,
+        bytes calldata proof
+    ) external returns (bytes memory receiptRlp) {
+        receiptRlp = checkTransactionReceipt(blockNumber, rlpEncodedTxIndex, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized, proof);
+
+        if (receiptRlp[0] == 0x02) {
+            receiptRlp = removeFirstNibble(receiptRlp);
+        }
+
+        RLP.RLPItem[] memory receiptItems = receiptRlp.toRLPItem().toList();
+        require(receiptItems.length == 4, "ERR_INVALID_RECEIPT_RLP");
+
+        // Store transaction status
+        if (paramsBitmap.readBitAtIndexFromRight(0)) {
+            transactionStatuses[blockNumber][rlpEncodedTxIndex] = receiptItems[0].toUint();
+        }
+
+        // Store cumulative gas used
+        if (paramsBitmap.readBitAtIndexFromRight(1)) {
+            transactionsCumulativeGasUsed[blockNumber][rlpEncodedTxIndex] = receiptItems[1].toUint();
+        }
+
+        // Store logs bloom
+        if (paramsBitmap.readBitAtIndexFromRight(2)) {
+            transactionsLogsBlooms[blockNumber][rlpEncodedTxIndex] = receiptItems[2].toBytes();
+        }
+
+        // Store logs
+        if (paramsBitmap.readBitAtIndexFromRight(3)) {
+            transactionsLogs[blockNumber][rlpEncodedTxIndex] = receiptItems[3].toRLPBytes();
+        }
+
         emit TransactionProven(blockNumber, rlpEncodedTxIndex, receiptRlp);
     }
 }
