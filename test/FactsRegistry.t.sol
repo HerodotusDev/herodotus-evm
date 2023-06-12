@@ -14,6 +14,8 @@ import {FactsRegistry} from "../src/FactsRegistry.sol";
 import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 import {MsgSignerMock} from "./mocks/MsgSignerMock.sol";
 
+uint256 constant DEFAULT_TREE_ID = 0;
+
 contract FactsRegistry_Test is Test {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // TODO replace with proper value
@@ -58,7 +60,7 @@ contract FactsRegistry_Test is Test {
         rlp_inputs_1[2] = "7583802";
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
-        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
 
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
@@ -81,7 +83,19 @@ contract FactsRegistry_Test is Test {
         uint256 blockNumber = 7583802;
         address account = address(uint160(uint256(0x00456cb24d30eaa6affc2a6924dae0d2a0a8c99c73)));
 
-        factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), headersProcessor.mmrElementsCount(), new bytes32[](0), peaks, headerRlp, proof);
+        factsRegistry.proveAccount(
+            DEFAULT_TREE_ID,
+            bitmap,
+            blockNumber,
+            account,
+            1,
+            keccak256(headerRlp),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
+            new bytes32[](0),
+            peaks,
+            headerRlp,
+            proof
+        );
 
         uint256 balance = factsRegistry.accountBalances(account, blockNumber);
         uint256 nonce = factsRegistry.accountNonces(account, blockNumber);
@@ -118,7 +132,19 @@ contract FactsRegistry_Test is Test {
             0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c,
             0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185
         );
-        factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), headersProcessor.mmrElementsCount(), new bytes32[](0), peaks, headerRlp, proof);
+        factsRegistry.proveAccount(
+            DEFAULT_TREE_ID,
+            bitmap,
+            blockNumber,
+            account,
+            1,
+            keccak256(headerRlp),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
+            new bytes32[](0),
+            peaks,
+            headerRlp,
+            proof
+        );
 
         uint256 balance = factsRegistry.accountBalances(account, blockNumber);
         uint256 nonce = factsRegistry.accountNonces(account, blockNumber);
@@ -149,7 +175,7 @@ contract FactsRegistry_Test is Test {
         // Test wrong elements count
         uint256 invalidElementsCount = 0;
         vm.expectRevert("ERR_EMPTY_MMR_ROOT");
-        factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), invalidElementsCount, new bytes32[](0), peaks, headerRlp, proof);
+        factsRegistry.proveAccount(DEFAULT_TREE_ID, bitmap, blockNumber, account, 1, keccak256(headerRlp), invalidElementsCount, new bytes32[](0), peaks, headerRlp, proof);
 
         // Test wrong peaks
         bytes32[] memory invalidPeaks = new bytes32[](1);
@@ -163,7 +189,7 @@ contract FactsRegistry_Test is Test {
                 account,
                 1,
                 keccak256(headerRlp),
-                headersProcessor.mmrElementsCount(),
+                headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
                 new bytes32[](0),
                 invalidPeaks,
                 headerRlp,
@@ -188,7 +214,7 @@ contract FactsRegistry_Test is Test {
                 account,
                 1,
                 keccak256(headerRlp),
-                headersProcessor.mmrElementsCount(),
+                headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
                 new bytes32[](0),
                 peaks,
                 headerRlp_malicious,
@@ -214,7 +240,19 @@ contract FactsRegistry_Test is Test {
         address account = address(uint160(uint256(0x007b2f05cE9aE365c3DBF30657e2DC6449989e83D6)));
 
         uint16 bitmap = 15; // 0b1111
-        factsRegistry.proveAccount(bitmap, blockNumber, account, 1, keccak256(headerRlp), headersProcessor.mmrElementsCount(), new bytes32[](0), peaks, headerRlp, accountProof);
+        factsRegistry.proveAccount(
+            DEFAULT_TREE_ID,
+            bitmap,
+            blockNumber,
+            account,
+            1,
+            keccak256(headerRlp),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
+            new bytes32[](0),
+            peaks,
+            headerRlp,
+            accountProof
+        );
 
         string[] memory storageProof_inputs = new string[](6);
         storageProof_inputs[0] = "node";
@@ -300,7 +338,7 @@ contract FactsRegistry_Test is Test {
         rlp_inputs[2] = "6302343";
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        headersProcessor.processBlockFromMessage(6302343, headerRlp, new bytes32[](0));
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, 6302343, headerRlp, new bytes32[](0));
 
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp)));
@@ -321,12 +359,13 @@ contract FactsRegistry_Test is Test {
         vm.expectEmit(true, true, true, true);
         emit TransactionProven(6302343, rlpEncodedTxIndex, expectedEncodedRlp);
         factsRegistry.proveTransactionReceipt(
+            DEFAULT_TREE_ID,
             bitmap,
             6302343,
             rlpEncodedTxIndex,
             1,
             keccak256(headerRlp),
-            headersProcessor.mmrElementsCount(),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
             new bytes32[](0),
             nextPeaks,
             headerRlp,
@@ -356,7 +395,7 @@ contract FactsRegistry_Test is Test {
 
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        headersProcessor.processBlockFromMessage(90005, headerRlp, new bytes32[](0));
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, 90005, headerRlp, new bytes32[](0));
 
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp)));
@@ -377,12 +416,13 @@ contract FactsRegistry_Test is Test {
         vm.expectEmit(true, true, true, true);
         emit TransactionProven(90005, rlpEncodedTxIndex, expectedEncodedRlp);
         factsRegistry.proveTransactionReceipt(
+            DEFAULT_TREE_ID,
             bitmap,
             90005,
             rlpEncodedTxIndex,
             1,
             keccak256(headerRlp),
-            headersProcessor.mmrElementsCount(),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
             new bytes32[](0),
             nextPeaks,
             headerRlp,
@@ -412,7 +452,7 @@ contract FactsRegistry_Test is Test {
         rlp_inputs[3] = "mainnet";
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
-        headersProcessor.processBlockFromMessage(13843670, headerRlp, new bytes32[](0));
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, 13843670, headerRlp, new bytes32[](0));
 
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp)));
@@ -433,12 +473,13 @@ contract FactsRegistry_Test is Test {
         vm.expectEmit(true, true, true, true);
         emit TransactionProven(13843670, rlpEncodedTxIndex, expectedEncodedRlp);
         factsRegistry.proveTransactionReceipt(
+            DEFAULT_TREE_ID,
             bitmap,
             13843670,
             rlpEncodedTxIndex,
             1,
             keccak256(headerRlp),
-            headersProcessor.mmrElementsCount(),
+            headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID),
             new bytes32[](0),
             nextPeaks,
             headerRlp,

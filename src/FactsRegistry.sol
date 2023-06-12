@@ -50,6 +50,7 @@ contract FactsRegistry is IFactsRegistry {
     }
 
     function verifyMmrProof(
+        uint256 treeId,
         uint256 blockNumber,
         uint256 blockProofLeafIndex,
         bytes32 blockProofLeafValue,
@@ -58,7 +59,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes32[] calldata mmrPeaks,
         bytes calldata headerSerialized
     ) internal view {
-        bytes32 mmrRoot = headersProcessor.mmrTreeSizeToRoot(mmrTreeSize);
+        bytes32 mmrRoot = headersProcessor.mmrsTreeSizeToRoot(treeId, mmrTreeSize);
         require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
         require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
@@ -69,6 +70,7 @@ contract FactsRegistry is IFactsRegistry {
     }
 
     function proveAccount(
+        uint256 treeId,
         uint16 paramsBitmap,
         uint256 blockNumber,
         address account,
@@ -80,7 +82,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) external {
-        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+        verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 stateRoot = headerSerialized.getStateRoot();
         bytes32 proofPath = keccak256(abi.encodePacked(account));
@@ -151,6 +153,7 @@ contract FactsRegistry is IFactsRegistry {
     }
 
     function checkTransactionReceipt(
+        uint256 treeId,
         uint256 blockNumber,
         bytes32 rlpEncodedTxIndex,
         uint256 blockProofLeafIndex,
@@ -161,7 +164,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) public view returns (bytes memory receiptRlp) {
-        verifyMmrProof(blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+        verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
 
@@ -169,6 +172,7 @@ contract FactsRegistry is IFactsRegistry {
     }
 
     function proveTransactionReceipt(
+        uint256 treeId,
         uint16 paramsBitmap,
         uint256 blockNumber,
         bytes32 rlpEncodedTxIndex,
@@ -180,7 +184,18 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) external returns (bytes memory receiptRlp) {
-        receiptRlp = checkTransactionReceipt(blockNumber, rlpEncodedTxIndex, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized, proof);
+        receiptRlp = checkTransactionReceipt(
+            treeId,
+            blockNumber,
+            rlpEncodedTxIndex,
+            blockProofLeafIndex,
+            blockProofLeafValue,
+            mmrTreeSize,
+            blockProof,
+            mmrPeaks,
+            headerSerialized,
+            proof
+        );
 
         if (receiptRlp[0] == 0x02) {
             receiptRlp = removeFirstNibble(receiptRlp);

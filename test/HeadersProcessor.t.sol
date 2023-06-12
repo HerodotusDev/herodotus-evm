@@ -10,6 +10,8 @@ import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
+uint256 constant DEFAULT_TREE_ID = 0;
+
 contract HeadersProcessor_Processing_Test is Test {
     using EVMHeaderRLP for bytes;
     using Strings for uint256;
@@ -49,9 +51,9 @@ contract HeadersProcessor_Processing_Test is Test {
 
         vm.expectEmit(true, true, true, true);
         emit AccumulatorUpdate(keccak256(headerRlp), blockNumber, 0);
-        headersProcessor.processBlockFromMessage(blockNumber, headerRlp, new bytes32[](0));
-        assertEq(headersProcessor.mmrElementsCount(), 1);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp, new bytes32[](0));
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
     }
 
     function test_processBlockFromMessage() public {
@@ -62,12 +64,12 @@ contract HeadersProcessor_Processing_Test is Test {
         rlp_inputs_1[2] = blockNumber.toString();
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
-        assertEq(headersProcessor.mmrElementsCount(), 0);
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 0);
 
         vm.expectEmit(true, true, true, true);
         emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
-        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
-        assertEq(headersProcessor.mmrElementsCount(), 1);
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
 
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
@@ -85,42 +87,9 @@ contract HeadersProcessor_Processing_Test is Test {
 
         vm.expectEmit(true, true, true, true);
         emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
-        headersProcessor.processBlockFromMessage(nextBlock, headerRlp_2, nextPeaks);
-        assertEq(headersProcessor.mmrElementsCount(), 3);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 2);
-    }
-
-    function test_processBlock() public {
-        uint256 blockNumber = initialParentHashSentForBlock - 1;
-        string[] memory rlp_inputs_1 = new string[](3);
-        rlp_inputs_1[0] = "node";
-        rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs_1[2] = blockNumber.toString();
-        bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
-
-        assertEq(headersProcessor.mmrElementsCount(), 0);
-
-        vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
-        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
-        assertEq(headersProcessor.mmrElementsCount(), 1);
-
-        bytes32[] memory nextPeaks = new bytes32[](1);
-        nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
-
-        uint256 nextBlock = blockNumber - 1;
-        string[] memory rlp_inputs_2 = new string[](3);
-        rlp_inputs_2[0] = "node";
-        rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
-        rlp_inputs_2[2] = nextBlock.toString();
-        bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
-
-        uint256 leafIndex = 1;
-        bytes32 leafValue = keccak256(headerRlp_1);
-        bytes32[] memory proof = new bytes32[](0);
-        vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
-        headersProcessor.processBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headerRlp_2);
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, nextBlock, headerRlp_2, nextPeaks);
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 3);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 2);
     }
 
     function test_processTillBlock_setup() public returns (bytes memory) {
@@ -133,9 +102,9 @@ contract HeadersProcessor_Processing_Test is Test {
 
         vm.expectEmit(true, true, true, true);
         emit AccumulatorUpdate(keccak256(headerRlp_1), blockNumber, 0);
-        headersProcessor.processBlockFromMessage(blockNumber, headerRlp_1, new bytes32[](0));
-        assertEq(headersProcessor.mmrElementsCount(), 1);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
+        headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
         return headerRlp_1;
     }
 
@@ -180,9 +149,9 @@ contract HeadersProcessor_Processing_Test is Test {
         emit AccumulatorUpdate(keccak256(headerRlp_2), nextBlock, 1);
         emit AccumulatorUpdate(keccak256(headerRlp_3), nextBlock2, 2);
         emit AccumulatorUpdate(keccak256(headerRlp_4), nextBlock3, 3);
-        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
-        assertEq(headersProcessor.mmrElementsCount(), 7);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 4);
+        headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
+        assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 7);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 4);
     }
 
     function test_processBlock_expect_revert() public {
@@ -233,8 +202,8 @@ contract HeadersProcessor_Processing_Test is Test {
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
 
         vm.expectRevert("ERR_INVALID_CHAIN_ELEMENT");
-        headersProcessor.processTillBlock(leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 1);
+        headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
     }
 }
 
@@ -253,7 +222,7 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         vm.prank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(blockNumber, parentHash);
         assertEq(headersProcessor.receivedParentHashes(blockNumber), parentHash);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 0);
     }
 
     function test_fail_receiveParentHash_notCommitmentsInbox() public {
@@ -261,6 +230,6 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
         bytes32 parentHash = "parent";
         vm.expectRevert("ERR_ONLY_INBOX");
         headersProcessor.receiveParentHash(blockNumber, parentHash);
-        assertEq(headersProcessor.mmrLatestUpdateId(), 0);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 0);
     }
 }

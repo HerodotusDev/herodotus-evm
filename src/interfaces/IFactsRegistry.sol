@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 interface IFactsRegistry {
     function proveAccount(
+        uint256 treeId,
         uint16 paramsBitmap,
         uint256 blockNumber,
         address account,
