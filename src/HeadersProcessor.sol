@@ -28,7 +28,7 @@ contract HeadersProcessor is IHeadersProcessor {
     mapping(uint256 => uint256) public mmrsLatestUpdateId;
 
     // Emitted event after each successful `append` operation
-    event AccumulatorUpdate(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
+    event AccumulatorUpdate(uint256 treeId, bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
 
     // !Merkle Mountain Range Accumulator
 
@@ -95,7 +95,7 @@ contract HeadersProcessor is IHeadersProcessor {
             bytes32 keccakHash = keccak256(elements[i]);
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(keccakHash, nextPeaks, nextElementsCount, nextRoot);
 
-            emit AccumulatorUpdate(keccakHash, processedBlockNumber, lastUpdateId + updateIdCounter);
+            emit AccumulatorUpdate(treeId, keccakHash, processedBlockNumber, lastUpdateId + updateIdCounter);
             ++updateIdCounter;
         }
 
@@ -118,7 +118,7 @@ contract HeadersProcessor is IHeadersProcessor {
 
         (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(keccakHash, lastPeaks, lastElementsCount, lastRoot);
 
-        emit AccumulatorUpdate(keccakHash, processedBlockNumber, lastUpdateId++);
+        emit AccumulatorUpdate(treeId, keccakHash, processedBlockNumber, lastUpdateId++);
 
         // Updating contract storage
         latestRoots[treeId] = nextRoot;
