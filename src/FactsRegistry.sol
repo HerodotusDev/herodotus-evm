@@ -182,7 +182,7 @@ contract FactsRegistry is IFactsRegistry {
     ) external returns (bytes memory receiptRlp) {
         receiptRlp = checkTransactionReceipt(blockNumber, rlpEncodedTxIndex, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized, proof);
 
-        if (receiptRlp[0] == 0x02) {
+        if (receiptRlp[0] == 0x02 || receiptRlp[0] == 0x01) {
             receiptRlp = removeFirstNibble(receiptRlp);
         }
 
