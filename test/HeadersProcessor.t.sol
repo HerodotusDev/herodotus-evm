@@ -7,6 +7,7 @@ import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
 
 import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
+import {IValidityProofVerifier} from "../src/interfaces/IValidityProofVerifier.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
@@ -35,7 +36,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes32 parentHash = bytes32(parentHashBytes);
 
         commitmentsInbox = new EOA();
-        headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)));
+        headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)), IValidityProofVerifier(address(0)));
         vm.prank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(initialParentHashSentForBlock, parentHash);
     }
@@ -213,7 +214,7 @@ contract HeadersProcessor_ReceivingParentHashes_Test is Test {
 
     constructor() {
         commitmentsInbox = new EOA();
-        headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)));
+        headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)), IValidityProofVerifier(address(0)));
     }
 
     function test_receiveParentHash() public {

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
+import {IValidityProofVerifier} from "./interfaces/IValidityProofVerifier.sol";
 import {ICommitmentsInbox} from "./interfaces/ICommitmentsInbox.sol";
 
 import {EVMHeaderRLP} from "./lib/EVMHeaderRLP.sol";
@@ -11,6 +12,7 @@ contract HeadersProcessor is IHeadersProcessor {
     using EVMHeaderRLP for bytes;
 
     ICommitmentsInbox public immutable commitmentsInbox;
+    IValidityProofVerifier public immutable validityProofVerifier;
 
     uint256 public latestReceived;
 
@@ -30,10 +32,13 @@ contract HeadersProcessor is IHeadersProcessor {
     // Emitted event after each successful `append` operation
     event AccumulatorUpdate(uint256 treeId, bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
 
+    event ValidityProofAccumulatorBatch(uint256 treeId, uint256 fromBlock, bytes32 keccakHash, uint256 amountOfBlocks, uint256 updateId);
+
     // !Merkle Mountain Range Accumulator
 
-    constructor(ICommitmentsInbox _commitmentsInbox) {
+    constructor(ICommitmentsInbox _commitmentsInbox, IValidityProofVerifier _validityProofVerifier) {
         commitmentsInbox = _commitmentsInbox;
+        validityProofVerifier = _validityProofVerifier;
     }
 
     modifier onlyCommitmentsInbox() {
@@ -144,5 +149,32 @@ contract HeadersProcessor is IHeadersProcessor {
 
         // Verify the reference block is in the MMR and the proof is valid
         StatelessMmr.verifyProof(referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, mmrsElementsCount[treeId], latestRoots[treeId]);
+    }
+
+    function processByValidityProof(
+        uint256 treeId,
+        uint256 referenceProofLeafIndex,
+        bytes32 referenceProofLeafValue,
+        bytes calldata validityProof,
+        bytes32 processedFromBlockHash,
+        uint256 processedFromBlock,
+        uint256 processedBlocksAmount,
+        bytes32 finalMmrRoot,
+        bytes calldata referenceHeaderSerialized
+    ) external {
+        // Assert the reference block is the one we expect
+        require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF");
+
+        // Validate reference block inclusion proof
+
+        bytes32 initialMmrRoot = latestRoots[treeId];
+        bytes memory publicInput = abi.encodePacked(initialMmrRoot, processedFromBlockHash, processedFromBlock, processedBlocksAmount, finalMmrRoot);
+
+        require(validityProofVerifier.verifyProof(validityProof, publicInput), "ERR_INVALID_VALIDITY_PROOF");
+
+        // Emotting event
+        uint256 updateId = mmrsLatestUpdateId[treeId];
+        emit ValidityProofAccumulatorBatch(treeId, referenceProofLeafIndex, referenceProofLeafValue, validityProof.length, updateId);
+        mmrsLatestUpdateId[treeId]++;
     }
 }

@@ -11,6 +11,7 @@ import {Secp256k1MsgSigner} from "../src/msg-signers/Secp256k1MsgSigner.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
+import {IValidityProofVerifier} from "../src/interfaces/IValidityProofVerifier.sol";
 
 import {ICommitmentsInbox} from "../src/interfaces/ICommitmentsInbox.sol";
 
@@ -36,7 +37,7 @@ contract Deployment is Script {
         address predictedSigner = CREATE.computeFutureAddress(deployer, deployerNonce + 4);
         address predictedWethMock = CREATE.computeFutureAddress(deployer, deployerNonce + 6);
 
-        HeadersProcessor headersProcessor = new HeadersProcessor(ICommitmentsInbox(predictedCommitmentsInbox));
+        HeadersProcessor headersProcessor = new HeadersProcessor(ICommitmentsInbox(predictedCommitmentsInbox), IValidityProofVerifier(address(0)));
         CommitmentsInbox commitmentsInbox = new CommitmentsInbox(IMsgSigner(predictedSigner), IERC20(predictedWethMock), 0, address(this), address(0));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
         new Secp256k1MsgSigner(deployer, deployer);

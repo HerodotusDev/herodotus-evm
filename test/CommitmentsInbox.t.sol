@@ -12,6 +12,7 @@ import {CommitmentsInbox} from "../src/CommitmentsInbox.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
+import {IValidityProofVerifier} from "../src/interfaces/IValidityProofVerifier.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 
 import {Secp256k1MsgSigner} from "../src/msg-signers/Secp256k1MsgSigner.sol";
@@ -33,7 +34,7 @@ contract CommitmentsInbox_OptimiticRelaying_Test is Test {
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
-        headersProcessor = new HeadersProcessor(commitmentsInbox);
+        headersProcessor = new HeadersProcessor(commitmentsInbox, IValidityProofVerifier(address(0)));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
     }
 
@@ -61,7 +62,7 @@ contract CommitmentsInbox_CrossdomainMessaging_Test is Test {
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(crossdomainDelivery));
-        headersProcessor = new HeadersProcessor(commitmentsInbox);
+        headersProcessor = new HeadersProcessor(commitmentsInbox, IValidityProofVerifier(address(0)));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
     }
 
@@ -110,7 +111,7 @@ contract CommitmentsInbox_Staking_Test is Test {
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), _collateralRequirement, address(owner), address(0));
-        headersProcessor = new HeadersProcessor(commitmentsInbox);
+        headersProcessor = new HeadersProcessor(commitmentsInbox, IValidityProofVerifier(address(0)));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
     }
 
@@ -167,7 +168,7 @@ contract CommitmentsInbox_Signing_Test is Test {
         msgSigner = new Secp256k1MsgSigner(account, address(1));
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
-        headersProcessor = new HeadersProcessor(commitmentsInbox);
+        headersProcessor = new HeadersProcessor(commitmentsInbox, IValidityProofVerifier(address(0)));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
     }
 

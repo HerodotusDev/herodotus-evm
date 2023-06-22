@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EOA} from "./helpers/EOA.sol";
 import {WETHMock} from "./helpers/WETHMock.sol";
 import {IHeadersProcessor} from "../src/interfaces/IHeadersProcessor.sol";
+import {IValidityProofVerifier} from "../src/interfaces/IValidityProofVerifier.sol";
 import {HeadersProcessor} from "../src/HeadersProcessor.sol";
 import {FactsRegistry} from "../src/FactsRegistry.sol";
 
@@ -41,7 +42,7 @@ contract FactsRegistry_Test is Test {
         msgSigner = new MsgSignerMock();
 
         commitmentsInbox = new CommitmentsInbox(msgSigner, IERC20(address(collateral)), 0, address(owner), address(0));
-        headersProcessor = new HeadersProcessor(commitmentsInbox);
+        headersProcessor = new HeadersProcessor(commitmentsInbox, IValidityProofVerifier(address(0)));
         commitmentsInbox.initialize(IHeadersProcessor(address(headersProcessor)));
         vm.startPrank(address(commitmentsInbox));
         headersProcessor.receiveParentHash(7583803, 0x139d2f5b484e3ecb9e684096e93c6e6eb008a76ca7afa69aea3d91875c435604);
