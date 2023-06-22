@@ -197,7 +197,7 @@ contract FactsRegistry is IFactsRegistry {
             proof
         );
 
-        if (receiptRlp[0] == 0x02) {
+        if (receiptRlp[0] == 0x02 || receiptRlp[0] == 0x01) {
             receiptRlp = removeFirstNibble(receiptRlp);
         }
 
