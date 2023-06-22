@@ -23,7 +23,7 @@ contract HeadersProcessor_Processing_Test is Test {
     uint256 initialParentHashSentForBlock = 7583803;
 
     // Emitted event after each successful `append` operation
-    event AccumulatorUpdate(uint256 treeId, bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
+    event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
 
     constructor() {
         string[] memory inputs = new string[](4);
@@ -51,7 +51,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp = vm.ffi(rlp_inputs);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp), blockNumber, 0);
+        emit AccumulatorUpdates(keccak256(headerRlp), blockNumber, 0, DEFAULT_TREE_ID, 1);
         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp, new bytes32[](0));
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
@@ -68,7 +68,7 @@ contract HeadersProcessor_Processing_Test is Test {
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_1), blockNumber, 0);
+        emit AccumulatorUpdates(keccak256(headerRlp_1), blockNumber, 0, DEFAULT_TREE_ID, 1);
         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
 
@@ -87,7 +87,7 @@ contract HeadersProcessor_Processing_Test is Test {
         headersProcessor.receiveParentHash(initialParentHashSentForBlock - 1, parentHash);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_2), nextBlock, 1);
+        emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 1, DEFAULT_TREE_ID, 1);
         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, nextBlock, headerRlp_2, nextPeaks);
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 3);
         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 2);
@@ -102,7 +102,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
 
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_1), blockNumber, 0);
+        emit AccumulatorUpdates(keccak256(headerRlp_1), blockNumber, 0, DEFAULT_TREE_ID, 1);
         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
@@ -145,11 +145,7 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
         vm.expectEmit(true, true, true, true);
-        vm.expectEmit(true, true, true, true);
-        vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_2), nextBlock, 1);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_3), nextBlock2, 2);
-        emit AccumulatorUpdate(DEFAULT_TREE_ID, keccak256(headerRlp_4), nextBlock3, 3);
+        emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 3, DEFAULT_TREE_ID, 3);
         headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 7);
         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 4);

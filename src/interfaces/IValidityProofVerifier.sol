@@ -2,5 +2,5 @@
 pragma solidity ^0.8.9;
 
 interface IValidityProofVerifier {
-    function verifyProof(bytes memory proof, bytes memory publicInputs) external view returns (bool);
+    function verifyProof(bytes memory proof, bytes memory publicInput, bytes memory signature) external view returns (bool);
 }

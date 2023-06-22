@@ -2,8 +2,6 @@
 pragma solidity ^0.8.9;
 
 interface IHeadersProcessor {
-    function latestReceived() external view returns (uint256);
-
     function receivedParentHashes(uint256 blockNumber) external view returns (bytes32);
 
     function latestRoots(uint256 treeId) external view returns (bytes32);

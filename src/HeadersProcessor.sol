@@ -12,9 +12,8 @@ contract HeadersProcessor is IHeadersProcessor {
     using EVMHeaderRLP for bytes;
 
     ICommitmentsInbox public immutable commitmentsInbox;
-    IValidityProofVerifier public immutable validityProofVerifier;
 
-    uint256 public latestReceived;
+    IValidityProofVerifier public immutable validityProofVerifier;
 
     mapping(uint256 => bytes32) public receivedParentHashes;
 
@@ -30,9 +29,7 @@ contract HeadersProcessor is IHeadersProcessor {
     mapping(uint256 => uint256) public mmrsLatestUpdateId;
 
     // Emitted event after each successful `append` operation
-    event AccumulatorUpdate(uint256 treeId, bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId);
-
-    event ValidityProofAccumulatorBatch(uint256 treeId, uint256 fromBlock, bytes32 keccakHash, uint256 amountOfBlocks, uint256 updateId);
+    event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
 
     // !Merkle Mountain Range Accumulator
 
@@ -47,9 +44,6 @@ contract HeadersProcessor is IHeadersProcessor {
     }
 
     function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external onlyCommitmentsInbox {
-        if (blockNumber > latestReceived) {
-            latestReceived = blockNumber;
-        }
         receivedParentHashes[blockNumber] = parentHash;
     }
 
@@ -94,21 +88,29 @@ contract HeadersProcessor is IHeadersProcessor {
         // Appending to mmr
         bytes32[] memory nextPeaks = lastPeaks;
 
-        uint updateIdCounter = 0;
+        // Necessary for event emitted below
+        uint256 firstElementProcessedBlockNumber;
+        bytes32 firstElementKeccakHash;
+
         for (uint256 i = 0; i < elements.length; ++i) {
             uint256 processedBlockNumber = elements[i].getBlockNumber();
             bytes32 keccakHash = keccak256(elements[i]);
+            if (i == 0) {
+                firstElementProcessedBlockNumber = processedBlockNumber;
+                firstElementKeccakHash = keccakHash;
+            }
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(keccakHash, nextPeaks, nextElementsCount, nextRoot);
-
-            emit AccumulatorUpdate(treeId, keccakHash, processedBlockNumber, lastUpdateId + updateIdCounter);
-            ++updateIdCounter;
         }
+
+        uint256 updatedId = lastUpdateId - 1 + elements.length;
 
         // Updating contract storage
         latestRoots[treeId] = nextRoot;
         mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
         mmrsElementsCount[treeId] = nextElementsCount;
-        mmrsLatestUpdateId[treeId] += updateIdCounter;
+        mmrsLatestUpdateId[treeId] += updatedId;
+
+        emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, updatedId, treeId, elements.length);
     }
 
     function mmrAppend(bytes calldata element, bytes32[] calldata lastPeaks, uint256 treeId) internal {
@@ -123,9 +125,10 @@ contract HeadersProcessor is IHeadersProcessor {
 
         (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(keccakHash, lastPeaks, lastElementsCount, lastRoot);
 
-        emit AccumulatorUpdate(treeId, keccakHash, processedBlockNumber, lastUpdateId++);
+        emit AccumulatorUpdates(keccakHash, processedBlockNumber, lastUpdateId, treeId, 1);
 
         // Updating contract storage
+        ++lastUpdateId;
         latestRoots[treeId] = nextRoot;
         mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
         mmrsElementsCount[treeId] = nextElementsCount;
@@ -153,28 +156,36 @@ contract HeadersProcessor is IHeadersProcessor {
 
     function processByValidityProof(
         uint256 treeId,
-        uint256 referenceProofLeafIndex,
+        uint256 referenceProofLeafIndex, // ?
         bytes32 referenceProofLeafValue,
         bytes calldata validityProof,
         bytes32 processedFromBlockHash,
         uint256 processedFromBlock,
         uint256 processedBlocksAmount,
+        uint256 finalElementsCount,
         bytes32 finalMmrRoot,
-        bytes calldata referenceHeaderSerialized
+        bytes calldata referenceHeaderSerialized,
+        bytes calldata signature
     ) external {
         // Assert the reference block is the one we expect
-        require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF");
-
-        // Validate reference block inclusion proof
+        require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF"); // ?
 
         bytes32 initialMmrRoot = latestRoots[treeId];
-        bytes memory publicInput = abi.encodePacked(initialMmrRoot, processedFromBlockHash, processedFromBlock, processedBlocksAmount, finalMmrRoot);
+        bytes memory publicInput = abi.encodePacked(initialMmrRoot, processedFromBlockHash, processedFromBlock, processedBlocksAmount, finalElementsCount, finalMmrRoot);
 
-        require(validityProofVerifier.verifyProof(validityProof, publicInput), "ERR_INVALID_VALIDITY_PROOF");
+        // Verify the ZKP
+        require(validityProofVerifier.verifyProof(validityProof, publicInput, signature), "ERR_INVALID_VALIDITY_PROOF");
 
-        // Emotting event
+        // Update updateId
         uint256 updateId = mmrsLatestUpdateId[treeId];
-        emit ValidityProofAccumulatorBatch(treeId, referenceProofLeafIndex, referenceProofLeafValue, validityProof.length, updateId);
-        mmrsLatestUpdateId[treeId]++;
+        uint256 updatedId = updateId + processedBlocksAmount - 1;
+
+        // Updating contract storage
+        latestRoots[treeId] = finalMmrRoot;
+        mmrsLatestUpdateId[treeId] = updatedId;
+        mmrsTreeSizeToRoot[treeId][finalElementsCount] = finalMmrRoot;
+        mmrsElementsCount[treeId] = finalElementsCount;
+
+        emit AccumulatorUpdates(processedFromBlockHash, processedFromBlock, updatedId, treeId, processedBlocksAmount);
     }
 }
