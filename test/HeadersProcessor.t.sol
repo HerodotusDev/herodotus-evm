@@ -145,10 +145,10 @@ contract HeadersProcessor_Processing_Test is Test {
         bytes32[] memory nextPeaks = new bytes32[](1);
         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
         vm.expectEmit(true, true, true, true);
-        emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 3, DEFAULT_TREE_ID, 3);
+        emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 1, DEFAULT_TREE_ID, 3);
         headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 7);
-        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 4);
+        assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 2);
     }
 
     function test_processBlock_expect_revert() public {

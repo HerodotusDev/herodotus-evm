@@ -102,15 +102,13 @@ contract HeadersProcessor is IHeadersProcessor {
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(keccakHash, nextPeaks, nextElementsCount, nextRoot);
         }
 
-        uint256 updatedId = lastUpdateId - 1 + elements.length;
-
         // Updating contract storage
         latestRoots[treeId] = nextRoot;
         mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
         mmrsElementsCount[treeId] = nextElementsCount;
-        mmrsLatestUpdateId[treeId] += updatedId;
+        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
 
-        emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, updatedId, treeId, elements.length);
+        emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, lastUpdateId, treeId, elements.length);
     }
 
     function mmrAppend(bytes calldata element, bytes32[] calldata lastPeaks, uint256 treeId) internal {
@@ -125,14 +123,13 @@ contract HeadersProcessor is IHeadersProcessor {
 
         (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(keccakHash, lastPeaks, lastElementsCount, lastRoot);
 
-        emit AccumulatorUpdates(keccakHash, processedBlockNumber, lastUpdateId, treeId, 1);
-
         // Updating contract storage
-        ++lastUpdateId;
         latestRoots[treeId] = nextRoot;
         mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
         mmrsElementsCount[treeId] = nextElementsCount;
-        mmrsLatestUpdateId[treeId] = lastUpdateId;
+        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
+
+        emit AccumulatorUpdates(keccakHash, processedBlockNumber, lastUpdateId, treeId, 1);
     }
 
     function isHeaderValid(bytes32 hash, bytes calldata header) internal pure returns (bool) {
@@ -176,16 +173,13 @@ contract HeadersProcessor is IHeadersProcessor {
         // Verify the ZKP
         require(validityProofVerifier.verifyProof(validityProof, publicInput, signature), "ERR_INVALID_VALIDITY_PROOF");
 
-        // Update updateId
-        uint256 updateId = mmrsLatestUpdateId[treeId];
-        uint256 updatedId = updateId + processedBlocksAmount - 1;
-
         // Updating contract storage
+        uint256 lastUpdateId = mmrsLatestUpdateId[treeId];
         latestRoots[treeId] = finalMmrRoot;
-        mmrsLatestUpdateId[treeId] = updatedId;
+        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
         mmrsTreeSizeToRoot[treeId][finalElementsCount] = finalMmrRoot;
         mmrsElementsCount[treeId] = finalElementsCount;
 
-        emit AccumulatorUpdates(processedFromBlockHash, processedFromBlock, updatedId, treeId, processedBlocksAmount);
+        emit AccumulatorUpdates(processedFromBlockHash, processedFromBlock, lastUpdateId, treeId, processedBlocksAmount);
     }
 }

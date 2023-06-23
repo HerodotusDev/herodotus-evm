@@ -17,7 +17,7 @@ contract ValidityProofVerifier is IValidityProofVerifier {
      * @param publicInput public input of the ZKP
      * @param signature signature from authorized signer to call this function
      */
-    function verifyProof(bytes calldata proof, bytes memory publicInput, bytes calldata signature) external view returns (bool) {
+    function verifyProof(bytes calldata proof, bytes calldata publicInput, bytes calldata signature) external view returns (bool) {
         bytes32 msgHash = keccak256(abi.encode(msg.sig, proof, publicInput, address(this)));
         signer.verify(msgHash, signature);
 
