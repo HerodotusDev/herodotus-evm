@@ -153,8 +153,6 @@ contract HeadersProcessor is IHeadersProcessor {
 
     function processByValidityProof(
         uint256 treeId,
-        uint256 referenceProofLeafIndex, // ?
-        bytes32 referenceProofLeafValue,
         bytes calldata validityProof,
         bytes32 processedFromBlockHash,
         uint256 processedFromBlock,
@@ -164,9 +162,6 @@ contract HeadersProcessor is IHeadersProcessor {
         bytes calldata referenceHeaderSerialized,
         bytes calldata signature
     ) external {
-        // Assert the reference block is the one we expect
-        require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF"); // ?
-
         bytes32 initialMmrRoot = latestRoots[treeId];
         bytes memory publicInput = abi.encodePacked(initialMmrRoot, processedFromBlockHash, processedFromBlock, processedBlocksAmount, finalElementsCount, finalMmrRoot);
 

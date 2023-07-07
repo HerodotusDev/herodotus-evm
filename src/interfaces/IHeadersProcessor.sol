@@ -18,8 +18,6 @@ interface IHeadersProcessor {
 
     function processTillBlock(
         uint256 treeId,
-        uint256 referenceProofLeafIndex,
-        bytes32 referenceProofLeafValue,
         bytes32[] calldata referenceProof,
         bytes32[] calldata mmrPeaks,
         bytes calldata referenceHeaderSerialized,
