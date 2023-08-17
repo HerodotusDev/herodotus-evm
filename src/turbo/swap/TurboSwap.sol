@@ -12,7 +12,7 @@ contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders
     // chainid => FactsRegistry
     mapping(uint256 => FactsRegistry) public factsRegistries;
 
-    function _currentAuctionWinner() internal override(TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders) view returns(address) {
+    function _swapFullfilmentAssignee() internal override(TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders) view returns(address) {
         return address(42); // TODO: implement
     }
 

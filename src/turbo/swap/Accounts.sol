@@ -16,7 +16,7 @@ abstract contract TurboSwapAccounts {
     mapping(uint256 => mapping(uint256 => mapping(address => mapping(AccountProperty => bytes32)))) public accountProperty;
 
     function setMultiple(AccountAttestation[] calldata attestations) external {
-        require(msg.sender == _currentAuctionWinner(), "TurboSwap: Only current auction winner can call this function");
+        require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             AccountAttestation calldata attestation = attestations[i];
 
@@ -41,7 +41,7 @@ abstract contract TurboSwapAccounts {
     }
 
     function clearMultiple(AccountAttestation[] calldata attestations) external {
-        require(msg.sender == _currentAuctionWinner(), "TurboSwap: Only current auction winner can call this function");
+        require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             AccountAttestation calldata attestation = attestations[i];
             accountProperty[attestation.chainId][attestation.blockNumber][attestation.account][attestation.property] = bytes32(0);
@@ -51,5 +51,5 @@ abstract contract TurboSwapAccounts {
 
     function _getFactRegistryForChain(uint256 chainId) internal virtual view returns(FactsRegistry);
 
-    function _currentAuctionWinner() internal virtual view returns(address);
+    function _swapFullfilmentAssignee() internal virtual view returns(address);
 }
