@@ -23,6 +23,8 @@ contract TimestampToBlockNumberMapper {
         bytes header;
     }
 
+    uint256 private _HASHMAP_KEY_OFFSET = 0xDEFACED00000;
+
     HeadersProcessor public immutable headersProcessor;
 
     uint256 public mappersCount;
@@ -53,7 +55,7 @@ contract TimestampToBlockNumberMapper {
             uint256 elementsCount;
 
             {
-                bytes32 hashmapIndex = keccak256(abi.encodePacked(blocksToRemap[i].includedInTreeId)); // TODO use more efficient hash function
+                bytes32 hashmapIndex = keccak256(abi.encodePacked(blocksToRemap[i].includedInTreeId + _HASHMAP_KEY_OFFSET)); // TODO use more efficient hash function
                 assembly ("memory-safe") { // TODO idk what memory-safe actually does
                     root := mload(add(hashmapIndex, 32))
                     elementsCount := mload(add(hashmapIndex, 64))
