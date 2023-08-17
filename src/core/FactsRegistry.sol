@@ -31,6 +31,8 @@ contract FactsRegistry {
     mapping(address => mapping(uint256 => uint256)) public accountBalances;
     mapping(address => mapping(uint256 => bytes32)) public accountCodeHashes;
     mapping(address => mapping(uint256 => bytes32)) public accountStorageHashes;
+    // address => block number => slot => value
+    mapping(address => mapping(uint256 => mapping(bytes32 => bytes32))) public accountStorageSlotValues;
 
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
 
@@ -135,11 +137,12 @@ contract FactsRegistry {
         }
     }
 
-    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external view returns (bytes32) {
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external {
         bytes32 root = accountStorageHashes[account][blockNumber];
         require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
         bytes32 proofPath = keccak256(abi.encodePacked(slot));
-        return bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
+        bytes32 slotValue = bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
+        accountStorageSlotValues[account][blockNumber][slot] = slotValue;
     }
 
     function removeFirstNibble(bytes memory input) internal pure returns (bytes memory) {
