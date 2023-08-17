@@ -50,7 +50,7 @@ contract FactsRegistry_Test is Test {
         headersProcessor.receiveParentHash(13843671, 0x62a8a05ef6fcd39a11b2d642d4b7ab177056e1eb4bde4454f67285164ef8ce65);
         headersProcessor.receiveParentHash(90006, 0x110e1bd97bed8bab4f08039edd0327b3341002881a48cd8f2d3df481e9b6d6d4);
         vm.stopPrank();
-        factsRegistry = new FactsRegistry(headersProcessor);
+        factsRegistry = new FactsRegistry(IHeadersProcessor(address(headersProcessor)));
     }
 
     function processBlockFromMessage() public returns (bytes memory, bytes32[] memory) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 library RLP {
     uint8 constant STRING_SHORT_START = 0x80;

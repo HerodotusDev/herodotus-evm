@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 interface IHeadersProcessor {
     function receivedParentHashes(uint256 blockNumber) external view returns (bytes32);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
 import {IValidityProofVerifier} from "./interfaces/IValidityProofVerifier.sol";
@@ -8,7 +8,7 @@ import {ICommitmentsInbox} from "./interfaces/ICommitmentsInbox.sol";
 import {EVMHeaderRLP} from "./lib/EVMHeaderRLP.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
-contract HeadersProcessor is IHeadersProcessor {
+contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
 
     ICommitmentsInbox public immutable commitmentsInbox;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
 import {IFactsRegistry} from "./interfaces/IFactsRegistry.sol";

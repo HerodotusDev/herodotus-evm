@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.19;
 
 library Bitmap16 {
     function readBitAtIndexFromRight(uint16 bitmap, uint256 index) public pure returns (bool value) {
