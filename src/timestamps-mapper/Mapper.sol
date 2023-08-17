@@ -49,27 +49,29 @@ contract TimestampToBlockNumberMapper {
         for(uint256 i = 0 ; i < blocksToRemap.length; i++) {
             require(keccak256(blocksToRemap[i].header) == blocksToRemap[i].leafValueInUnorderedTree, "ERR_INVALID_HEADER");
             
-            bytes32 hashmapIndex = keccak256(abi.encodePacked(blocksToRemap[i].includedInTreeId)); // TODO use more efficient hash function
             bytes32 root;
             uint256 elementsCount;
 
-            assembly {
-                root := mload(add(hashmapIndex, 32))
-                elementsCount := mload(add(hashmapIndex, 64))
+            {
+                bytes32 hashmapIndex = keccak256(abi.encodePacked(blocksToRemap[i].includedInTreeId)); // TODO use more efficient hash function
+                assembly ("memory-safe") { // TODO idk what memory-safe actually does
+                    root := mload(add(hashmapIndex, 32))
+                    elementsCount := mload(add(hashmapIndex, 64))
+                }
+
+                // In this case SLOAD from HeaderProcessor is needed
+                if(root == bytes32(0)) {
+                    (uint256 mmrSize, bytes32 mmrRoot, ) = headersProcessor.mmrs(blocksToRemap[i].includedInTreeId);
+                    assembly ("memory-safe") { // TODO idk what memory-safe actually does
+                        root := mmrRoot
+                        elementsCount := mmrSize
+                        mstore(add(hashmapIndex, 32), mmrRoot)
+                        mstore(add(hashmapIndex, 64), mmrSize)
+                    }
+                }
+                require(root != bytes32(0), "ERR_INVALID_TREE_ID");
             }
 
-            // In this case SLOAD from HeaderProcessor is needed
-            if(root == bytes32(0)) {
-                (uint256 mmrSize, bytes32 mmrRoot, ) = headersProcessor.mmrs(blocksToRemap[i].includedInTreeId);
-                assembly {
-                    root := mmrRoot
-                    elementsCount := mmrSize
-                    mstore(add(hashmapIndex, 32), mmrRoot)
-                    mstore(add(hashmapIndex, 64), mmrSize)
-                }
-            }
-            require(root != bytes32(0), "ERR_INVALID_TREE_ID");
-            
             StatelessMmr.verifyProof(
                 blocksToRemap[i].leafIndexInUnorderedTree,
                 blocksToRemap[i].leafValueInUnorderedTree,
@@ -80,9 +82,14 @@ contract TimestampToBlockNumberMapper {
             );
 
             uint256 blockNumber = EVMHeaderRLP.getBlockNumber(blocksToRemap[i].header);
-            require(blockNumber >= mapper.startsFromBlock, "ERR_BLOCK_NUMBER_TOO_LOW");
+            require(blockNumber >= mapper.latestBlockNumberAppended, "ERR_BLOCK_NUMBER_TOO_LOW");
             uint256 timestamp = EVMHeaderRLP.getTimestamp(blocksToRemap[i].header);
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextElementsCount, nextRoot);
         }
+
+        mappers[targettedMapId].latestBlockNumberAppended = nextElementsCount + mapper.latestBlockNumberAppended;
+        mappers[targettedMapId].root = nextRoot;
     }
+
+
 }
