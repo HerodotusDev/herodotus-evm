@@ -2,18 +2,22 @@
 pragma solidity 0.8.19;
 
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
-import {IValidityProofVerifier} from "./interfaces/IValidityProofVerifier.sol";
-import {ICommitmentsInbox} from "./interfaces/ICommitmentsInbox.sol";
 
-import {EVMHeaderRLP} from "./lib/EVMHeaderRLP.sol";
+import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
+
+// type BlockNumber is uint256;
+// type BlockHash is bytes32;
+
+// type MMRId is uint256;
+// type MMRRoot is bytes32;
+// type MMRSize is uint256;
+// type MMRUpdateId is uint256;
 
 contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
 
-    ICommitmentsInbox public immutable commitmentsInbox;
-
-    IValidityProofVerifier public immutable validityProofVerifier;
+    address public immutable messagesInboxAddr;
 
     mapping(uint256 => bytes32) public receivedParentHashes;
 
@@ -33,17 +37,16 @@ contract HeadersProcessor {
 
     // !Merkle Mountain Range Accumulator
 
-    constructor(ICommitmentsInbox _commitmentsInbox, IValidityProofVerifier _validityProofVerifier) {
-        commitmentsInbox = _commitmentsInbox;
-        validityProofVerifier = _validityProofVerifier;
+    constructor(address _messagesInboxAddr) {
+        messagesInboxAddr = _messagesInboxAddr;
     }
 
-    modifier onlyCommitmentsInbox() {
-        require(msg.sender == address(commitmentsInbox), "ERR_ONLY_INBOX");
+    modifier onlyMessagesInbox() {
+        require(msg.sender == messagesInboxAddr, "ERR_ONLY_INBOX");
         _;
     }
 
-    function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external onlyCommitmentsInbox {
+    function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external onlyMessagesInbox {
         receivedParentHashes[blockNumber] = parentHash;
     }
 
@@ -149,32 +152,5 @@ contract HeadersProcessor {
 
         // Verify the reference block is in the MMR and the proof is valid
         StatelessMmr.verifyProof(referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, mmrsElementsCount[treeId], latestRoots[treeId]);
-    }
-
-    function processByValidityProof(
-        uint256 treeId,
-        bytes calldata validityProof,
-        bytes32 processedFromBlockHash,
-        uint256 processedFromBlock,
-        uint256 processedBlocksAmount,
-        uint256 finalElementsCount,
-        bytes32 finalMmrRoot,
-        bytes calldata referenceHeaderSerialized,
-        bytes calldata signature
-    ) external {
-        bytes32 initialMmrRoot = latestRoots[treeId];
-        bytes memory publicInput = abi.encodePacked(initialMmrRoot, processedFromBlockHash, processedFromBlock, processedBlocksAmount, finalElementsCount, finalMmrRoot);
-
-        // Verify the ZKP
-        require(validityProofVerifier.verifyProof(validityProof, publicInput, signature), "ERR_INVALID_VALIDITY_PROOF");
-
-        // Updating contract storage
-        uint256 lastUpdateId = mmrsLatestUpdateId[treeId];
-        latestRoots[treeId] = finalMmrRoot;
-        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
-        mmrsTreeSizeToRoot[treeId][finalElementsCount] = finalMmrRoot;
-        mmrsElementsCount[treeId] = finalElementsCount;
-
-        emit AccumulatorUpdates(processedFromBlockHash, processedFromBlock, lastUpdateId, treeId, processedBlocksAmount);
     }
 }

@@ -4,10 +4,10 @@ pragma solidity 0.8.19;
 import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
 import {IFactsRegistry} from "./interfaces/IFactsRegistry.sol";
 
-import {RLP} from "./lib/RLP.sol";
-import {TrieProofs} from "./lib/TrieProofs.sol";
-import {Bitmap16} from "./lib/Bitmap16.sol";
-import {EVMHeaderRLP} from "./lib/EVMHeaderRLP.sol";
+import {RLP} from "../lib/RLP.sol";
+import {TrieProofs} from "../lib/TrieProofs.sol";
+import {Bitmap16} from "../lib/Bitmap16.sol";
+import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
 contract FactsRegistry is IFactsRegistry {
