@@ -82,7 +82,7 @@ contract HeadersProcessor {
         _mmrMultiAppend(headersSerialized, mmrPeaks, treeId);
     }
 
-    function _mmrMultiAppend(bytes[] memory elements, bytes32[] memory lastPeaks, uint256 treeId) internal {
+    function _mmrMultiAppend(bytes[] memory appendedHeaders, bytes32[] memory lastPeaks, uint256 treeId) internal {
         // Getting current mmr state for the treeId
         uint256 nextElementsCount = mmrs[treeId].elementsCount;
         bytes32 nextRoot = mmrs[treeId].root;
@@ -95,9 +95,9 @@ contract HeadersProcessor {
         uint256 firstElementProcessedBlockNumber;
         bytes32 firstElementKeccakHash;
 
-        for (uint256 i = 0; i < elements.length; ++i) {
-            uint256 processedBlockNumber = elements[i].getBlockNumber();
-            bytes32 keccakHash = keccak256(elements[i]);
+        for (uint256 i = 0; i < appendedHeaders.length; ++i) {
+            uint256 processedBlockNumber = appendedHeaders[i].getBlockNumber();
+            bytes32 keccakHash = keccak256(appendedHeaders[i]);
             if (i == 0) {
                 firstElementProcessedBlockNumber = processedBlockNumber;
                 firstElementKeccakHash = keccakHash;
@@ -112,7 +112,7 @@ contract HeadersProcessor {
         mmrs[treeId].latestUpdateId = lastUpdateId + 1;
         emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, lastUpdateId, treeId, elements.length);
     }
-    
+
     function _isHeaderValid(bytes32 hash, bytes memory header) internal pure returns (bool) {
         return keccak256(header) == hash;
     }
