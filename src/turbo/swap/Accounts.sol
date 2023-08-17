@@ -3,8 +3,9 @@ pragma solidity 0.8.19;
 
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 
+import {AccountProperty} from "../interfaces/ITurboSwap.sol";
+
 abstract contract TurboSwapAccounts {
-    enum AccountProperty { NONCE, BALANCE, STORAGE_HASH, CODE_HASH }
     struct AccountAttestation {
         uint256 chainId;
         address account;
@@ -13,9 +14,9 @@ abstract contract TurboSwapAccounts {
     }
 
     // chainid => block number => address => property => value
-    mapping(uint256 => mapping(uint256 => mapping(address => mapping(AccountProperty => bytes32)))) public accountProperty;
+    mapping(uint256 => mapping(uint256 => mapping(address => mapping(AccountProperty => bytes32)))) internal _accounts;
 
-    function setMultiple(AccountAttestation[] calldata attestations) external {
+    function setMultipleAccounts(AccountAttestation[] calldata attestations) external {
         require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             AccountAttestation calldata attestation = attestations[i];
@@ -36,15 +37,15 @@ abstract contract TurboSwapAccounts {
                 revert("TurboSwap: Unknown property");
             }
 
-            accountProperty[attestation.chainId][attestation.blockNumber][attestation.account][attestation.property] = value;
+            _accounts[attestation.chainId][attestation.blockNumber][attestation.account][attestation.property] = value;
         }
     }
 
-    function clearMultiple(AccountAttestation[] calldata attestations) external {
+    function clearMultipleAccounts(AccountAttestation[] calldata attestations) external {
         require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             AccountAttestation calldata attestation = attestations[i];
-            accountProperty[attestation.chainId][attestation.blockNumber][attestation.account][attestation.property] = bytes32(0);
+            _accounts[attestation.chainId][attestation.blockNumber][attestation.account][attestation.property] = bytes32(0);
             // TODO pay out fees
         }
     }

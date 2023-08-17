@@ -12,9 +12,9 @@ abstract contract TurboSwapStorageSlots {
     }
 
     // chainid => block number => address => slot => value
-    mapping(uint256 => mapping(uint256 => mapping(address => mapping(bytes32 => bytes32)))) public storageSlots;
+    mapping(uint256 => mapping(uint256 => mapping(address => mapping(bytes32 => bytes32)))) internal _storageSlots;
 
-    function setMultiple(StorageSlotAttestation[] calldata attestations) external {
+    function setMultipleStorageSlots(StorageSlotAttestation[] calldata attestations) external {
         require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             StorageSlotAttestation calldata attestation = attestations[i];
@@ -23,15 +23,15 @@ abstract contract TurboSwapStorageSlots {
             require(address(factsRegistry) != address(0), "TurboSwap: Unknown chain id");
 
             bytes32 value = factsRegistry.accountStorageSlotValues(attestation.account, attestation.blockNumber, attestation.slot);
-            storageSlots[attestation.chainId][attestation.blockNumber][attestation.account][attestation.slot] = value;
+            _storageSlots[attestation.chainId][attestation.blockNumber][attestation.account][attestation.slot] = value;
         }
     }
 
-    function clearMultiple(StorageSlotAttestation[] calldata attestations) external {
+    function clearMultipleStorageSlots(StorageSlotAttestation[] calldata attestations) external {
         require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < attestations.length; i++) {
             StorageSlotAttestation calldata attestation = attestations[i];
-            storageSlots[attestation.chainId][attestation.blockNumber][attestation.account][attestation.slot] = bytes32(0);
+            _storageSlots[attestation.chainId][attestation.blockNumber][attestation.account][attestation.slot] = bytes32(0);
             // TODO pay out fees
         }
     }

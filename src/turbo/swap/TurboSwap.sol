@@ -8,7 +8,9 @@ import {TurboSwapHeaders} from "./Headers.sol";
 
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 
-contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders {
+import {ITurboSwap, AccountProperty} from "../interfaces/ITurboSwap.sol";
+
+contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, ITurboSwap {
     // chainid => FactsRegistry
     mapping(uint256 => FactsRegistry) public factsRegistries;
 
@@ -18,5 +20,17 @@ contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders
 
     function _getFactRegistryForChain(uint256 chainId) internal override(TurboSwapStorageSlots, TurboSwapAccounts) view returns(FactsRegistry) {
         return FactsRegistry(address(42)); // TODO: implement
+    }
+
+    function storageSlots(uint256 chainId, uint256 blockNumber, address account, bytes32 slot) external override returns (bytes32) {
+        bytes32 value = _storageSlots[chainId][blockNumber][account][slot];
+        require(value != bytes32(0), "TurboSwap: Storage slot not set"); // TODO handle case in which it is actually 0
+        return value;
+    }
+
+    function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external override returns (bytes32) {
+        bytes32 value = _accounts[chainId][blockNumber][account][property];
+        require(value != bytes32(0), "TurboSwap: Account property not set"); // TODO handle case in which it is actually 0
+        return value;
     }
 }

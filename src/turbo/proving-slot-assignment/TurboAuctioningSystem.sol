@@ -24,6 +24,8 @@ contract TurboAuctioningSystem is AccessControl {
         // TODO add callback signature?
     }
 
+    event SlotAssigned(uint256 slotId, address assignee, uint256 winningBidAmount);
+
     bytes32 constant public AUCTION_OPERATOR_ROLE = "AUCTION_OPERATOR_ROLE";
 
     uint256 public immutable deploymentTimestamp;
@@ -61,6 +63,10 @@ contract TurboAuctioningSystem is AccessControl {
             return assignee;
         }
         return slotAssignments[lastAssignedSlotId];
+    }
+
+    function getMissedSlotsCount() public view returns(uint256) {
+        return currentSlotId() - slotAssignmentsCount;
     }
 
     function depositToStateChannel(uint256 amount) external {
@@ -111,5 +117,7 @@ contract TurboAuctioningSystem is AccessControl {
         slotAssignments[auctionedSlotId] = bids[0].assignee;
         slotAssignmentsCount++;
         lastAssignedSlotId = auctionedSlotId;
+
+        emit SlotAssigned(auctionedSlotId, bids[0].assignee, winningBidAmount);
     }
 }
