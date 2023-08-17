@@ -110,7 +110,7 @@ contract HeadersProcessor {
         mmrs[treeId].treeSizeToRoot[nextElementsCount] = nextRoot;
         mmrs[treeId].elementsCount = nextElementsCount;
         mmrs[treeId].latestUpdateId = lastUpdateId + 1;
-        emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, lastUpdateId, treeId, elements.length);
+        emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, lastUpdateId, treeId, appendedHeaders.length);
     }
 
     function _isHeaderValid(bytes32 hash, bytes memory header) internal pure returns (bool) {

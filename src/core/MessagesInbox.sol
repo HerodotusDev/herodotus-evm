@@ -21,8 +21,9 @@ contract MessagesInbox {
         emit ReceivedParentHash(uint8(1), parentHash, blockNumber); // TODO: Handle originChainId
     }
 
+    // TODO
     function receiveKeccakMMR(uint256 aggregatorId, bytes32 keccakMMRRoot, uint256 mmrSize) external onlyCrossdomainCounterpart {
-        headersProcessor.processBlockFromMessage(aggregatorId, mmrSize, abi.encode(keccakMMRRoot), new bytes32[](0));
+        // headersProcessor.processBlockFromMessage(aggregatorId, mmrSize, abi.encode(keccakMMRRoot), new bytes32[](0));
     }
 
     modifier onlyCrossdomainCounterpart() {
