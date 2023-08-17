@@ -10,10 +10,7 @@ import {EOA} from "./helpers/EOA.sol";
 import {WETHMock} from "./helpers/WETHMock.sol";
 
 import {MessagesInbox} from "../src/core/MessagesInbox.sol";
-import {IHeadersProcessor} from "../src/core/interfaces/IHeadersProcessor.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
-
-
 
 
 // contract MessagesInbox_Test is Test {

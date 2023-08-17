@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
+import {HeadersProcessor} from "./HeadersProcessor.sol";
 import {IFactsRegistry} from "./interfaces/IFactsRegistry.sol";
 
 import {RLP} from "../lib/RLP.sol";
@@ -25,7 +25,7 @@ contract FactsRegistry is IFactsRegistry {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
-    IHeadersProcessor public immutable headersProcessor;
+    HeadersProcessor public immutable headersProcessor;
 
     mapping(address => mapping(uint256 => uint256)) public accountNonces;
     mapping(address => mapping(uint256 => uint256)) public accountBalances;
@@ -45,11 +45,11 @@ contract FactsRegistry is IFactsRegistry {
 
     event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
 
-    constructor(IHeadersProcessor _headersProcessor) {
-        headersProcessor = _headersProcessor;
+    constructor(address _headersProcessor) {
+        headersProcessor = HeadersProcessor(_headersProcessor);
     }
 
-    function verifyMmrProof(
+    function _verifyMmrProof(
         uint256 treeId,
         uint256 blockNumber,
         uint256 blockProofLeafIndex,
@@ -59,7 +59,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes32[] calldata mmrPeaks,
         bytes calldata headerSerialized
     ) internal view {
-        bytes32 mmrRoot = headersProcessor.mmrsTreeSizeToRoot(treeId, mmrTreeSize);
+        (,bytes32 mmrRoot,) = headersProcessor.mmrs(treeId);
         require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
         require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
@@ -82,7 +82,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) external {
-        verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+        _verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 stateRoot = headerSerialized.getStateRoot();
         bytes32 proofPath = keccak256(abi.encodePacked(account));
@@ -164,7 +164,7 @@ contract FactsRegistry is IFactsRegistry {
         bytes calldata headerSerialized,
         bytes calldata proof
     ) public view returns (bytes memory receiptRlp) {
-        verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+        _verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
         bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
 

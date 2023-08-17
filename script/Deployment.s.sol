@@ -7,7 +7,6 @@ import {MessagesInbox} from "../src/core/MessagesInbox.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
 
-import {IHeadersProcessor} from "../src/core/interfaces/IHeadersProcessor.sol";
 import {IMessagesInbox} from "../src/core/interfaces/IMessagesInbox.sol";
 
 import {CREATE} from "../src/lib/CREATE.sol";

@@ -1,36 +1,27 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {IHeadersProcessor} from "./interfaces/IHeadersProcessor.sol";
 
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
-// type BlockNumber is uint256;
-// type BlockHash is bytes32;
-
-// type MMRId is uint256;
-// type MMRRoot is bytes32;
-// type MMRSize is uint256;
-// type MMRUpdateId is uint256;
 
 contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
+
+    struct MMRInfo {
+        uint256 elementsCount;
+        bytes32 root;
+        uint256 latestUpdateId;
+        mapping(uint256 => bytes32) treeSizeToRoot;
+    }
 
     address public immutable messagesInboxAddr;
 
     mapping(uint256 => bytes32) public receivedParentHashes;
 
     // Merkle Mountain Range: on-chain accumulator
-
-    mapping(uint256 => bytes32) public latestRoots;
-
-    mapping(uint256 => uint256) public mmrsElementsCount;
-
-    // @dev: Map MMR ID to a mapping of tree size to root hash
-    mapping(uint256 => mapping(uint256 => bytes32)) public mmrsTreeSizeToRoot;
-
-    mapping(uint256 => uint256) public mmrsLatestUpdateId;
+    mapping (uint256 => MMRInfo) public mmrs;
 
     // Emitted event after each successful `append` operation
     event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
@@ -54,11 +45,11 @@ contract HeadersProcessor {
         bytes32 expectedHash = receivedParentHashes[blockNumber + 1];
         require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
 
-        bool isValid = isHeaderValid(expectedHash, headerSerialized);
+        bool isValid = _isHeaderValid(expectedHash, headerSerialized);
         require(isValid, "ERR_INVALID_HEADER");
 
         // Append new header to MMR
-        mmrAppend(headerSerialized, mmrPeaks, treeId);
+        _mmrAppend(headerSerialized, mmrPeaks, treeId);
     }
 
     function processTillBlock(
@@ -71,22 +62,22 @@ contract HeadersProcessor {
         bytes[] calldata headersSerialized
     ) external {
         // Validate reference block inclusion proof
-        validateParentBlockAndProofIntegrity(treeId, referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, referenceHeaderSerialized);
+        _validateParentBlockAndProofIntegrity(treeId, referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, referenceHeaderSerialized);
 
         // Check serialized headers are cryptographically linked via `parentHash`
         for (uint256 i = 1; i < headersSerialized.length; ++i) {
-            require(isHeaderValid(headersSerialized[i - 1].getParentHash(), headersSerialized[i]), "ERR_INVALID_CHAIN_ELEMENT");
+            require(_isHeaderValid(headersSerialized[i - 1].getParentHash(), headersSerialized[i]), "ERR_INVALID_CHAIN_ELEMENT");
         }
 
         // Append new headers to MMR
-        mmrMultiAppend(headersSerialized, mmrPeaks, treeId);
+        _mmrMultiAppend(headersSerialized, mmrPeaks, treeId);
     }
 
-    function mmrMultiAppend(bytes[] calldata elements, bytes32[] calldata lastPeaks, uint256 treeId) internal {
+    function _mmrMultiAppend(bytes[] calldata elements, bytes32[] calldata lastPeaks, uint256 treeId) internal {
         // Getting current mmr state for the treeId
-        uint256 nextElementsCount = mmrsElementsCount[treeId];
-        bytes32 nextRoot = latestRoots[treeId];
-        uint256 lastUpdateId = mmrsLatestUpdateId[treeId];
+        uint256 nextElementsCount = mmrs[treeId].elementsCount;
+        bytes32 nextRoot = mmrs[treeId].root;
+        uint256 lastUpdateId = mmrs[treeId].latestUpdateId;
 
         // Appending to mmr
         bytes32[] memory nextPeaks = lastPeaks;
@@ -106,19 +97,18 @@ contract HeadersProcessor {
         }
 
         // Updating contract storage
-        latestRoots[treeId] = nextRoot;
-        mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
-        mmrsElementsCount[treeId] = nextElementsCount;
-        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
-
+        mmrs[treeId].root = nextRoot;
+        mmrs[treeId].treeSizeToRoot[nextElementsCount] = nextRoot;
+        mmrs[treeId].elementsCount = nextElementsCount;
+        mmrs[treeId].latestUpdateId = lastUpdateId + 1;
         emit AccumulatorUpdates(firstElementKeccakHash, firstElementProcessedBlockNumber, lastUpdateId, treeId, elements.length);
     }
 
-    function mmrAppend(bytes calldata element, bytes32[] calldata lastPeaks, uint256 treeId) internal {
+    function _mmrAppend(bytes calldata element, bytes32[] calldata lastPeaks, uint256 treeId) internal {
         // Getting current mmr state for the treeId
-        uint256 lastElementsCount = mmrsElementsCount[treeId];
-        bytes32 lastRoot = latestRoots[treeId];
-        uint256 lastUpdateId = mmrsLatestUpdateId[treeId];
+        uint256 lastElementsCount = mmrs[treeId].elementsCount;
+        bytes32 lastRoot = mmrs[treeId].root;
+        uint256 lastUpdateId = mmrs[treeId].latestUpdateId;
 
         // Appending to mmr
         uint256 processedBlockNumber = element.getBlockNumber();
@@ -127,19 +117,18 @@ contract HeadersProcessor {
         (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(keccakHash, lastPeaks, lastElementsCount, lastRoot);
 
         // Updating contract storage
-        latestRoots[treeId] = nextRoot;
-        mmrsTreeSizeToRoot[treeId][nextElementsCount] = nextRoot;
-        mmrsElementsCount[treeId] = nextElementsCount;
-        mmrsLatestUpdateId[treeId] = lastUpdateId + 1;
-
+        mmrs[treeId].root = nextRoot;
+        mmrs[treeId].treeSizeToRoot[nextElementsCount] = nextRoot;
+        mmrs[treeId].elementsCount = nextElementsCount;
+        mmrs[treeId].latestUpdateId = lastUpdateId + 1;
         emit AccumulatorUpdates(keccakHash, processedBlockNumber, lastUpdateId, treeId, 1);
     }
 
-    function isHeaderValid(bytes32 hash, bytes calldata header) internal pure returns (bool) {
+    function _isHeaderValid(bytes32 hash, bytes calldata header) internal pure returns (bool) {
         return keccak256(header) == hash;
     }
 
-    function validateParentBlockAndProofIntegrity(
+    function _validateParentBlockAndProofIntegrity(
         uint256 treeId,
         uint256 referenceProofLeafIndex,
         bytes32 referenceProofLeafValue,
@@ -151,6 +140,8 @@ contract HeadersProcessor {
         require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF");
 
         // Verify the reference block is in the MMR and the proof is valid
-        StatelessMmr.verifyProof(referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, mmrsElementsCount[treeId], latestRoots[treeId]);
+        uint256 elementsCount = mmrs[treeId].elementsCount;
+        bytes32 root = mmrs[treeId].root;
+        StatelessMmr.verifyProof(referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, elementsCount, root);
     }
 }
