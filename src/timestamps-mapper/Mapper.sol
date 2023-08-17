@@ -68,7 +68,8 @@ contract TimestampToBlockNumberMapper {
                     mstore(add(hashmapIndex, 64), mmrSize)
                 }
             }
-
+            require(root != bytes32(0), "ERR_INVALID_TREE_ID");
+            
             StatelessMmr.verifyProof(
                 blocksToRemap[i].leafIndexInUnorderedTree,
                 blocksToRemap[i].leafValueInUnorderedTree,
