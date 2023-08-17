@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
+
 import {HeadersProcessor} from "./HeadersProcessor.sol";
-import {IFactsRegistry} from "./interfaces/IFactsRegistry.sol";
 
 import {RLP} from "../lib/RLP.sol";
 import {TrieProofs} from "../lib/TrieProofs.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
-import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
-contract FactsRegistry is IFactsRegistry {
+contract FactsRegistry {
     using EVMHeaderRLP for bytes;
     using TrieProofs for bytes;
     using RLP for RLP.RLPItem;

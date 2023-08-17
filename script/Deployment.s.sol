@@ -7,8 +7,6 @@ import {MessagesInbox} from "../src/core/MessagesInbox.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
 
-import {IMessagesInbox} from "../src/core/interfaces/IMessagesInbox.sol";
-
 import {CREATE} from "../src/lib/CREATE.sol";
 
 import {WETHMock} from "../test/helpers/WETHMock.sol";

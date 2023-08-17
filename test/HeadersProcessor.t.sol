@@ -6,7 +6,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
 
-import {IMessagesInbox} from "../src/core/interfaces/IMessagesInbox.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
