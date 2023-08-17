@@ -43,10 +43,12 @@ contract HeadersProcessor {
         receivedParentHashes[blockNumber] = parentHash;
     }
 
+    // EXISTING MMRS MANAGEMENT
     function processBlocksBatch(bool isReferenceHeaderAccumulated, uint256 treeId, bytes calldata ctx, bytes[] calldata headersSerialized) external {
         if (isReferenceHeaderAccumulated) {
             _processBlocksBatchAccumulated(treeId, ctx, headersSerialized);
         } else {
+            require(mmrs[treeId].elementsCount > 0, "ERR_MMR_EMPTY");
             _processBlocksBatchNotAccumulated(treeId, ctx, headersSerialized);
         }
     }
