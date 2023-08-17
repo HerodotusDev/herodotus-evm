@@ -6,8 +6,6 @@ import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
 
-type ProcessBlocksBatchCtxCaseNotAccumulated is uint256;
-
 contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
 
@@ -27,6 +25,9 @@ contract HeadersProcessor {
 
     // Emitted event after each successful `append` operation
     event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
+    event AccumulatorCreatedThroughL1Message(uint256 treeId, uint256 size, bytes32 root);
+    event AccumulatorBranchCreated(uint256 treeId, uint256 detachedFromTreeId);
+    event CreatedEmptyAccumulator(uint256 treeId, bytes32 initialBlockHash);
 
     // !Merkle Mountain Range Accumulator
 
@@ -48,20 +49,54 @@ contract HeadersProcessor {
 
     function createEmptyWithInitialElement(uint256 treeId, bool isInitialElementAccumulated, bytes calldata ctx) external {
         require(treeId % 2 == 1, "TREES_CREATED_BY_L1_MUST_BE_ODD");
-        // TODO dispatch isInitialElementAccumulated
+        require(mmrs[treeId].elementsCount == 0, "ERR_MMR_ALREADY_EXISTS");
+
+        if(isInitialElementAccumulated) {
+            (   uint256 initialElementCopiedFromTreeId,
+                uint256 referenceProofLeafIndex,
+                bytes32 referenceProofLeafValue,
+                bytes32[] memory referenceProof,
+                bytes32[] memory mmrPeaks,
+                bytes memory referenceHeaderSerialized
+            ) = abi.decode(ctx, (uint256, uint256, bytes32, bytes32[], bytes32[], bytes));
+            require(mmrs[initialElementCopiedFromTreeId].elementsCount > 0, "ERR_MMR_DOES_NOT_EXIST");
+            _validateParentBlockAndProofIntegrity(initialElementCopiedFromTreeId, referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, referenceHeaderSerialized);
+            bytes[] memory initialHeaders = new bytes[](1);
+            initialHeaders[0] = referenceHeaderSerialized;
+            _mmrMultiAppend(initialHeaders, mmrPeaks, treeId);
+            emit CreatedEmptyAccumulator(treeId, keccak256(referenceHeaderSerialized));
+        } else {
+            (uint256 blockNumber, bytes32[] memory mmrPeaks) = abi.decode(ctx, (uint256, bytes32[]));
+            bytes32 appendedHash = receivedParentHashes[blockNumber + 1];
+            require(appendedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
+            {
+                (uint256 nextElementsCount, bytes32 nextRoot) = StatelessMmr.append(appendedHash, mmrPeaks, 0, bytes32(0));
+                mmrs[treeId].root = nextRoot;
+                mmrs[treeId].elementsCount = nextElementsCount;
+                mmrs[treeId].latestUpdateId = 1;
+                emit AccumulatorUpdates(appendedHash, blockNumber, 1, treeId, 1);
+            }
+            emit CreatedEmptyAccumulator(treeId, appendedHash);
+        }
     }
 
-    function createBranchFromExisting(uint256 treeId) external {
+    function createBranchFromExisting(uint256 treeId, uint256 detachFromTreeId) external {
         require(treeId % 2 == 1, "TREES_CREATED_BY_L1_MUST_BE_ODD");
-        // TODO
+        require(mmrs[treeId].elementsCount == 0, "ERR_MMR_ALREADY_EXISTS");
+        require(mmrs[detachFromTreeId].elementsCount > 0, "ERR_MMR_DOES_NOT_EXIST");
+
+        mmrs[treeId].elementsCount = mmrs[detachFromTreeId].elementsCount;
+        mmrs[treeId].root = mmrs[detachFromTreeId].root;
+
+        emit AccumulatorBranchCreated(treeId, detachFromTreeId);
     }
 
     function receiveExistingFromL1(uint256 treeId, uint256 mmrSize, bytes32 mmrRoot) external onlyMessagesInbox {
         require(treeId % 2 == 0, "TREES_CREATED_BY_L1_MUST_BE_EVEN");
-
+        require(mmrs[treeId].elementsCount == 0, "ERR_MMR_ALREADY_EXISTS");
         mmrs[treeId].elementsCount = mmrSize;
         mmrs[treeId].root = mmrRoot;
-        // TODO emit event
+        emit AccumulatorCreatedThroughL1Message(treeId, mmrSize, mmrRoot);
     }
 
     // ====== EXISTING TREES GROWING ======
