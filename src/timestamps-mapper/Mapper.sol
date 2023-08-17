@@ -14,6 +14,7 @@ contract TimestampToBlockNumberMapper {
         bytes32 root;
     }
 
+    // Calldata encoding facilitator
     struct RemappedBlock {
         uint256 includedInTreeId;
         uint256 leafIndexInUnorderedTree;
@@ -23,12 +24,20 @@ contract TimestampToBlockNumberMapper {
         bytes header;
     }
 
+    // Calldata encoding facilitator
+    struct BinsearchPathElement {
+        uint256 leafIndex;
+        bytes32 leafValue;
+        bytes32[] peaks;
+        bytes32[] inclusionProof;
+    }
+
     uint256 private _HASHMAP_KEY_OFFSET = 0xDEFACED00000;
 
     HeadersProcessor public immutable headersProcessor;
 
     uint256 public mappersCount;
-    mapping(uint256 => Mapper) public mappers;
+    mapping(uint256 => Mapper) public mappers; // TODO memento pattern
 
     constructor(HeadersProcessor _headersProcessor) {
         headersProcessor = _headersProcessor;
@@ -93,5 +102,35 @@ contract TimestampToBlockNumberMapper {
         mappers[targettedMapId].root = nextRoot;
     }
 
+    function binsearchBlockNumberByTimestamp(uint256 searchedRemappingId, uint256 timestamp, BinsearchPathElement[] calldata searchPath) external view returns(uint256 blockNumber) {
+        uint256 remappedTreeSize = mappers[searchedRemappingId].latestBlockNumberAppended - mappers[searchedRemappingId].startsFromBlock;
+        bytes32 remappedRoot = mappers[searchedRemappingId].root;
+        require(remappedRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
+        uint256 currentElement = remappedTreeSize / 2;
+
+        for(uint256 i = 0; i < searchPath.length; i++) {
+            require(searchPath[i].leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
+
+            StatelessMmr.verifyProof(
+                searchPath[i].leafIndex,
+                searchPath[i].leafValue,
+                searchPath[i].inclusionProof,
+                searchPath[i].peaks,
+                remappedTreeSize,
+                remappedRoot
+            );
+
+            if(timestamp < uint256(searchPath[i].leafValue)) {
+                currentElement = currentElement / 2;
+            } else {
+                currentElement = currentElement + (currentElement / 2);
+            }
+        }
+
+        uint256 foundBlockNumber = mappers[searchedRemappingId].startsFromBlock + searchPath[searchPath.length - 1].leafIndex;
+
+        // TODO implement the right-most element retrieval
+        return foundBlockNumber;
+    }
 }
