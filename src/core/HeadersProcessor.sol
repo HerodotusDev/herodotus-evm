@@ -43,7 +43,29 @@ contract HeadersProcessor {
         receivedParentHashes[blockNumber] = parentHash;
     }
 
-    // EXISTING MMRS MANAGEMENT
+    // ====== NEW TREES CREATION ======
+    // @notice the reason why L1 odd IDs are used for trees created by L1 is to avoid frontrun risk
+
+    function createEmptyWithInitialElement(uint256 treeId, bool isInitialElementAccumulated, bytes calldata ctx) external {
+        require(treeId % 2 == 1, "TREES_CREATED_BY_L1_MUST_BE_ODD");
+        // TODO dispatch isInitialElementAccumulated
+    }
+
+    function createBranchFromExisting(uint256 treeId) external {
+        require(treeId % 2 == 1, "TREES_CREATED_BY_L1_MUST_BE_ODD");
+        // TODO
+    }
+
+    function receiveExistingFromL1(uint256 treeId, uint256 mmrSize, bytes32 mmrRoot) external onlyMessagesInbox {
+        require(treeId % 2 == 0, "TREES_CREATED_BY_L1_MUST_BE_EVEN");
+
+        mmrs[treeId].elementsCount = mmrSize;
+        mmrs[treeId].root = mmrRoot;
+        // TODO emit event
+    }
+
+    // ====== EXISTING TREES GROWING ======
+
     function processBlocksBatch(bool isReferenceHeaderAccumulated, uint256 treeId, bytes calldata ctx, bytes[] calldata headersSerialized) external {
         if (isReferenceHeaderAccumulated) {
             _processBlocksBatchAccumulated(treeId, ctx, headersSerialized);
