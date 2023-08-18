@@ -2,11 +2,11 @@
 pragma solidity 0.8.19;
 
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
+import {EVMHeaderRLP} from "../../lib/EVMHeaderRLP.sol";
 import {HeaderProperty} from "../interfaces/ITurboSwap.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
-import {EVMHeaderRLP} from "../../lib/EVMHeaderRLP.sol";
 
 // TODO: implement
 abstract contract TurboSwapHeaders {
@@ -53,7 +53,7 @@ abstract contract TurboSwapHeaders {
 
             uint256 blockNumber = attestation.headerSerialized.getBlockNumber();
 
-            for(uint j = 0; j < attestation.properties.length; j++) {
+            for(uint256 j = 0; j < attestation.properties.length; j++) {
                 HeaderProperty property = attestation.properties[j];
                 // bytes32 value = headerSerialized.getHeaderProperty(property); // TODO: implement
                 _headers[attestation.chainId][blockNumber][property] = bytes32(0); // TODO: implement
@@ -65,7 +65,7 @@ abstract contract TurboSwapHeaders {
         require(msg.sender == _swapFullfilmentAssignee(), "TurboSwap: Only current auction winner can call this function");
         for(uint256 i = 0; i < resets.length; i++) {
             HeaderReset calldata reset = resets[i];
-            for(uint j = 0; j < reset.properties.length; j++) {
+            for(uint256 j = 0; j < reset.properties.length; j++) {
                 HeaderProperty property = reset.properties[j];
                 _headers[reset.chainId][reset.blockNumber][property] = bytes32(0);
             }

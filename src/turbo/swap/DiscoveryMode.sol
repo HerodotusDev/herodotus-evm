@@ -1,59 +1,59 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import {TurboSwapStorageSlots} from "./StorageSlots.sol";
+import {TurboSwapAccounts} from "./Accounts.sol";
+import {TurboSwapHeaders} from "./Headers.sol";
+
+
+import {FactsRegistry} from "../../core/FactsRegistry.sol";
+import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
+
 import {ITurboSwap, AccountProperty, HeaderProperty} from "../interfaces/ITurboSwap.sol";
 
-contract TurboSwapDiscoveryMode is ITurboSwap {
-    struct StorageSlotAttestion {
-        uint256 chainId;
-        uint256 blockNumber;
-        address account;
-        bytes32 slot;
-        bytes32 value;
+
+// This contract will be the implementation behind the proxy, so it will have access to the state of the actual swap.
+contract TurboSwapDiscoveryMode is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, ITurboSwap {
+    event IdentifiedUnsetStorageSlot(uint256 chainId, uint256 blockNumber, address account, bytes32 slot);
+    event IdentifiedUnsetAccountProperty(uint256 chainId, uint256 blockNumber, address account, AccountProperty property);
+    event IdentifiedUnsetHeaderProperty(uint256 chainId, uint256 blockNumber, HeaderProperty property);
+
+    // chainid => FactsRegistry
+    mapping(uint256 => FactsRegistry) public factsRegistries;
+
+    function _swapFullfilmentAssignee() internal override(TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders) view returns(address) {
+        return address(42); // TODO: implement
     }
 
-    struct AccountAttestation {
-        uint256 chainId;
-        uint256 blockNumber;
-        address account;
-        AccountProperty property;
-        bytes32 value;
+    function _getFactRegistryForChain(uint256 chainId) internal override(TurboSwapStorageSlots, TurboSwapAccounts) view returns(FactsRegistry) {
+        return FactsRegistry(address(42)); // TODO: implement
     }
 
-    struct HeaderPropertyAttestation {
-        uint256 chainId;
-        uint256 blockNumber;
-        HeaderProperty property;
-        bytes32 value;
+    function _getHeadersProcessorForChain(uint256 chainId) internal override(TurboSwapHeaders) view returns(HeadersProcessor) {
+        return HeadersProcessor(address(42)); // TODO: implement
     }
 
-    function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external returns (bytes32) {
-        // TODO emit events
-        return bytes32(0);
+    function storageSlots(uint256 chainId, uint256 blockNumber, address account, bytes32 slot) external override returns (bytes32) {
+        bytes32 value = _storageSlots[chainId][blockNumber][account][slot];
+        if(value == bytes32(0)) { // TODO handle case in which it is actually 0
+            emit IdentifiedUnsetStorageSlot(chainId, blockNumber, account, slot);
+        }
+        return value;
     }
 
-    function storageSlots(uint256 chainId, uint256 blockNumber, address account, bytes32 slot) external returns (bytes32) {
-        // TODO emit events
-        return bytes32(0);
+    function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external override returns (bytes32) {
+        bytes32 value = _accounts[chainId][blockNumber][account][property];
+        if(value == bytes32(0)) { // TODO handle case in which it is actually 0
+            emit IdentifiedUnsetAccountProperty(chainId, blockNumber, account, property);
+        }
+        return value;
     }
 
-    function headers(uint256 chainId, uint256 blockNumber, HeaderProperty property) external returns (bytes32) {
-        // TODO emit events
-        return bytes32(0);
-    }
-
-    function setMultipleAccounts(AccountAttestation[] calldata attestations) external {
-        // TODO: implement setting
-        revert("TurboSwap: Discovery mode");
-    }
-
-    function setMultipleStorageSlots(StorageSlotAttestion[] calldata attestations) external {
-        // TODO: implement setting
-        revert("TurboSwap: Discovery mode");
-    }
-
-    function setMultipleHeaderProps(HeaderPropertyAttestation[] calldata attestations) external {
-        // TODO: implement setting
-        revert("TurboSwap: Discovery mode");
+    function headers(uint256 chainId, uint256 blockNumber, HeaderProperty property) external override returns (bytes32) {
+        bytes32 value = _headers[chainId][blockNumber][property];
+        if(value == bytes32(0)) { // TODO handle case in which it is actually 0
+            emit IdentifiedUnsetHeaderProperty(chainId, blockNumber, property);
+        }
+        return value;
     }
 }
