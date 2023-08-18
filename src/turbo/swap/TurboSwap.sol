@@ -8,15 +8,22 @@ import {TurboSwapHeaders} from "./Headers.sol";
 
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
+import {TurboAuctioningSystem} from "../proving-slot-assignment/TurboAuctioningSystem.sol";
 
 import {ITurboSwap, AccountProperty, HeaderProperty} from "../interfaces/ITurboSwap.sol";
 
 contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, ITurboSwap {
+    
     // chainid => FactsRegistry
     mapping(uint256 => FactsRegistry) public factsRegistries;
+    TurboAuctioningSystem public auctioningSystem;
+
+    constructor(TurboAuctioningSystem _auctioningSystem) {
+        auctioningSystem = _auctioningSystem;
+    }
 
     function _swapFullfilmentAssignee() internal override(TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders) view returns(address) {
-        return address(42); // TODO: implement
+        return auctioningSystem.getCurrentAssignee();
     }
 
     function _getFactRegistryForChain(uint256 chainId) internal override(TurboSwapStorageSlots, TurboSwapAccounts) view returns(FactsRegistry) {
