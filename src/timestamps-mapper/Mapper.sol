@@ -44,7 +44,7 @@ contract TimestampToBlockNumberMapper {
     }
 
     function createMapper(uint256 _startsFromBlock) external returns (uint256 mapperId) {
-        mappers[mappersCount] = Mapper(_startsFromBlock, _startsFromBlock, bytes32(0));
+        mappers[mappersCount] = Mapper(_startsFromBlock, type(uint256).max, bytes32(0));
         emit MapperCreated(mapperId, _startsFromBlock);
         mappersCount++;
     }
@@ -56,6 +56,9 @@ contract TimestampToBlockNumberMapper {
         bytes32[] memory nextPeaks = lastPeaks;
         uint256 nextElementsCount = mapper.latestBlockNumberAppended - mapper.startsFromBlock;
         bytes32 nextRoot = mapper.root;
+
+        uint256 firstBlockAppended = mapper.latestBlockNumberAppended == type(uint).max ? mapper.startsFromBlock : mapper.latestBlockNumberAppended + 1;
+        uint256 nextExpectedBlockAppended = firstBlockAppended;
 
         for(uint256 i = 0 ; i < blocksToRemap.length; i++) {
             require(keccak256(blocksToRemap[i].header) == blocksToRemap[i].leafValueInUnorderedTree, "ERR_INVALID_HEADER");
@@ -93,12 +96,13 @@ contract TimestampToBlockNumberMapper {
             );
 
             uint256 blockNumber = EVMHeaderRLP.getBlockNumber(blocksToRemap[i].header);
-            require(blockNumber >= mapper.latestBlockNumberAppended, "ERR_BLOCK_NUMBER_TOO_LOW");
+            require(blockNumber == nextExpectedBlockAppended, "ERR_BLOCK_NUMBER_TOO_LOW");
             uint256 timestamp = EVMHeaderRLP.getTimestamp(blocksToRemap[i].header);
             (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextElementsCount, nextRoot);
+            nextExpectedBlockAppended++;
         }
 
-        mappers[targettedMapId].latestBlockNumberAppended = nextElementsCount + mapper.latestBlockNumberAppended;
+        mappers[targettedMapId].latestBlockNumberAppended = nextElementsCount + firstBlockAppended;
         mappers[targettedMapId].root = nextRoot;
     }
 
