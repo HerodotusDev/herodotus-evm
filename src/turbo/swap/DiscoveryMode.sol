@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {ITurboSwap, AccountProperty} from "../interfaces/ITurboSwap.sol";
+import {ITurboSwap, AccountProperty, HeaderProperty} from "../interfaces/ITurboSwap.sol";
 
 contract TurboSwapDiscoveryMode is ITurboSwap {
     struct StorageSlotAttestion {
@@ -20,6 +20,13 @@ contract TurboSwapDiscoveryMode is ITurboSwap {
         bytes32 value;
     }
 
+    struct HeaderPropertyAttestation {
+        uint256 chainId;
+        uint256 blockNumber;
+        HeaderProperty property;
+        bytes32 value;
+    }
+
     function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external returns (bytes32) {
         // TODO emit events
         return bytes32(0);
@@ -30,12 +37,22 @@ contract TurboSwapDiscoveryMode is ITurboSwap {
         return bytes32(0);
     }
 
+    function headers(uint256 chainId, uint256 blockNumber, HeaderProperty property) external returns (bytes32) {
+        // TODO emit events
+        return bytes32(0);
+    }
+
     function setMultipleAccounts(AccountAttestation[] calldata attestations) external {
         // TODO: implement setting
         revert("TurboSwap: Discovery mode");
     }
 
     function setMultipleStorageSlots(StorageSlotAttestion[] calldata attestations) external {
+        // TODO: implement setting
+        revert("TurboSwap: Discovery mode");
+    }
+
+    function setMultipleHeaderProps(HeaderPropertyAttestation[] calldata attestations) external {
         // TODO: implement setting
         revert("TurboSwap: Discovery mode");
     }
