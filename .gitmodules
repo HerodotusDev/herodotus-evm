@@ -7,6 +7,3 @@
 [submodule "lib/solidity-mmr"]
 	path = lib/solidity-mmr
 	url = https://github.com/HerodotusDev/solidity-mmr
-[submodule "lib/protomerkle"]
-	path = lib/protomerkle
-	url = https://github.com/hananbeer/protomerkle

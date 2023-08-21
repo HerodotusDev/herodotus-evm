@@ -9,6 +9,8 @@ import {RLP} from "../lib/RLP.sol";
 import {TrieProofs} from "../lib/TrieProofs.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
+import {FixedSizeMerkleTree} from "../lib/FixedSizeMerkleTree.sol";
+
 
 contract FactsRegistry {
     using EVMHeaderRLP for bytes;
@@ -16,6 +18,12 @@ contract FactsRegistry {
     using RLP for RLP.RLPItem;
     using RLP for bytes;
     using Bitmap16 for uint16;
+    using FixedSizeMerkleTree for bytes32;
+
+    bytes32 constant EMPTY_LEAF_HASH = bytes32(0);
+    uint256 constant TREE_WIDTH = 1024;
+    uint256 constant TREE_DEPTH = 10;
+    bytes32 constant DEFAULT_ROOT = bytes32(0);
 
     uint8 private constant ACCOUNT_NONCE_INDEX = 0;
     uint8 private constant ACCOUNT_BALANCE_INDEX = 1;
@@ -26,6 +34,9 @@ contract FactsRegistry {
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
     HeadersProcessor public immutable headersProcessor;
+
+    // namespace id => Merkle root of the namespace
+    mapping(bytes32 => bytes32) public namespaces;
 
     mapping(address => mapping(uint256 => uint256)) public accountNonces;
     mapping(address => mapping(uint256 => uint256)) public accountBalances;
@@ -72,8 +83,7 @@ contract FactsRegistry {
     }
 
     function proveAccount(
-        uint256 treeId,
-        uint16 paramsBitmap,
+        uint256 headersTreeId,
         uint256 blockNumber,
         address account,
         uint256 blockProofLeafIndex,
@@ -82,59 +92,45 @@ contract FactsRegistry {
         bytes32[] calldata blockProof,
         bytes32[] calldata mmrPeaks,
         bytes calldata headerSerialized,
-        bytes calldata proof
+        bytes calldata proof,
+        bytes32[] calldata namespaceInclusionProof
     ) external {
-        _verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+        // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
+        _verifyMmrProof(headersTreeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
+        // Calculate the page at which the namespace is stored
+        uint256 namespaceBlocksPageId = blockNumber / TREE_WIDTH;
+        uint256 namespaceBlockrangeStart = namespaceBlocksPageId * TREE_WIDTH;
+        uint256 namespaceBlockrangeEnd = namespaceBlockrangeStart + TREE_WIDTH - 1;
+
+        bytes32 namespaceId = keccak256(abi.encodePacked(
+            bytes32("accounts"),
+            namespaceBlockrangeStart,
+            namespaceBlockrangeEnd,
+            account // TODO once we move to MMR add the roothash of the namespace
+        ));
+
+        // Verify the account state proof
         bytes32 stateRoot = headerSerialized.getStateRoot();
         bytes32 proofPath = keccak256(abi.encodePacked(account));
         bytes memory accountRLP = proof.verify(stateRoot, proofPath);
 
-        bytes32 storageHash = EMPTY_TRIE_ROOT_HASH;
-        bytes32 codeHash = EMPTY_CODE_HASH;
-        uint256 nonce;
-        uint256 balance;
+        // Prepare the update to the namespace tree
+        bytes32 accountRlpHash = keccak256(accountRLP);
+        uint256 indexInTree = blockNumber - namespaceBlockrangeStart;
 
-        if (accountRLP.length > 0) {
-            RLP.RLPItem[] memory accountItems = accountRLP.toRLPItem().toList();
-
-            if (paramsBitmap.readBitAtIndexFromRight(0)) {
-                storageHash = bytes32(accountItems[ACCOUNT_STORAGE_ROOT_INDEX].toUint());
-            }
-
-            if (paramsBitmap.readBitAtIndexFromRight(1)) {
-                codeHash = bytes32(accountItems[ACCOUNT_CODE_HASH_INDEX].toUint());
-            }
-
-            if (paramsBitmap.readBitAtIndexFromRight(2)) {
-                nonce = accountItems[ACCOUNT_NONCE_INDEX].toUint();
-            }
-
-            if (paramsBitmap.readBitAtIndexFromRight(3)) {
-                balance = accountItems[ACCOUNT_BALANCE_INDEX].toUint();
-            }
-            emit AccountProven(account, blockNumber, nonce, balance, codeHash, storageHash);
+        // Retrieve the current root of the namespace tree
+        bytes32 _tmp = namespaces[namespaceId]; // TODO come up with better name
+        bytes32 currentNamespaceRoot;
+        if(_tmp == bytes32(0)) {
+            currentNamespaceRoot = DEFAULT_ROOT;
+        } else {
+            currentNamespaceRoot = _tmp;
         }
 
-        // SAVE STORAGE_HASH
-        if (paramsBitmap.readBitAtIndexFromRight(0)) {
-            accountStorageHashes[account][blockNumber] = storageHash;
-        }
-
-        // SAVE CODE_HASH
-        if (paramsBitmap.readBitAtIndexFromRight(1)) {
-            accountCodeHashes[account][blockNumber] = codeHash;
-        }
-
-        // SAVE NONCE
-        if (paramsBitmap.readBitAtIndexFromRight(2)) {
-            accountNonces[account][blockNumber] = nonce;
-        }
-
-        // SAVE BALANCE
-        if (paramsBitmap.readBitAtIndexFromRight(3)) {
-            accountBalances[account][blockNumber] = balance;
-        }
+        // Update the namespace tree
+        bytes32 newNamespaceRoot = currentNamespaceRoot.updateElement(TREE_DEPTH, indexInTree, EMPTY_LEAF_HASH, accountRlpHash, namespaceInclusionProof);
+        namespaces[namespaceId] = newNamespaceRoot;
     }
 
     function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external {
