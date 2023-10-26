@@ -16,6 +16,11 @@ contract HeadersProcessor {
         mapping(uint256 => bytes32) treeSizeToRoot;
     }
 
+    event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
+    event AccumulatorCreatedThroughL1Message(uint256 treeId, uint256 size, bytes32 root);
+    event AccumulatorBranchCreated(uint256 treeId, uint256 detachedFromTreeId);
+    event CreatedEmptyAccumulator(uint256 treeId, bytes32 initialBlockHash);
+
     address public immutable messagesInboxAddr;
 
     mapping(uint256 => bytes32) public receivedParentHashes;
@@ -24,10 +29,6 @@ contract HeadersProcessor {
     mapping (uint256 => MMRInfo) public mmrs;
 
     // Emitted event after each successful `append` operation
-    event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
-    event AccumulatorCreatedThroughL1Message(uint256 treeId, uint256 size, bytes32 root);
-    event AccumulatorBranchCreated(uint256 treeId, uint256 detachedFromTreeId);
-    event CreatedEmptyAccumulator(uint256 treeId, bytes32 initialBlockHash);
 
     // !Merkle Mountain Range Accumulator
 

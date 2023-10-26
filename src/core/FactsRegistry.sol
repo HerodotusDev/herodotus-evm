@@ -5,11 +5,13 @@ import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
 import {HeadersProcessor} from "./HeadersProcessor.sol";
 
+import {Types} from "../lib/Types.sol";
 import {RLP} from "../lib/RLP.sol";
 import {TrieProofs} from "../lib/TrieProofs.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {FixedSizeMerkleTree} from "../lib/FixedSizeMerkleTree.sol";
+
 
 
 contract FactsRegistry {
@@ -18,12 +20,9 @@ contract FactsRegistry {
     using RLP for RLP.RLPItem;
     using RLP for bytes;
     using Bitmap16 for uint16;
-    using FixedSizeMerkleTree for bytes32;
 
-    bytes32 constant EMPTY_LEAF_HASH = bytes32(0);
-    uint256 constant TREE_WIDTH = 1024;
-    uint256 constant TREE_DEPTH = 10;
-    bytes32 constant DEFAULT_ROOT = bytes32(0);
+    event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
+    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
 
     uint8 private constant ACCOUNT_NONCE_INDEX = 0;
     uint8 private constant ACCOUNT_BALANCE_INDEX = 1;
@@ -35,17 +34,12 @@ contract FactsRegistry {
 
     HeadersProcessor public immutable headersProcessor;
 
-    // namespace id => Merkle root of the namespace
-    mapping(bytes32 => bytes32) public namespaces;
-
     mapping(address => mapping(uint256 => uint256)) public accountNonces;
     mapping(address => mapping(uint256 => uint256)) public accountBalances;
     mapping(address => mapping(uint256 => bytes32)) public accountCodeHashes;
     mapping(address => mapping(uint256 => bytes32)) public accountStorageHashes;
     // address => block number => slot => value
     mapping(address => mapping(uint256 => mapping(bytes32 => bytes32))) public accountStorageSlotValues;
-
-    event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
 
     // transactionStatus mapping
     mapping(uint256 => mapping(bytes32 => uint256)) public transactionStatuses;
@@ -56,81 +50,70 @@ contract FactsRegistry {
     // logs mapping
     mapping(uint256 => mapping(bytes32 => bytes)) public transactionsLogs;
 
-    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
-
     constructor(address _headersProcessor) {
         headersProcessor = HeadersProcessor(_headersProcessor);
     }
 
     function _verifyMmrProof(
-        uint256 treeId,
-        uint256 blockNumber,
-        uint256 blockProofLeafIndex,
-        bytes32 blockProofLeafValue,
-        uint256 mmrTreeSize,
-        bytes32[] calldata blockProof,
-        bytes32[] calldata mmrPeaks,
-        bytes calldata headerSerialized
+        Types.BlockHeaderProof memory proof
     ) internal view {
-        (,bytes32 mmrRoot,) = headersProcessor.mmrs(treeId);
+        (,bytes32 mmrRoot,) = headersProcessor.mmrs(proof.treeId);
         require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
-        require(keccak256(headerSerialized) == blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
-        StatelessMmr.verifyProof(blockProofLeafIndex, blockProofLeafValue, blockProof, mmrPeaks, mmrTreeSize, mmrRoot);
+        bytes32 blockHeaderHash = keccak256(proof.provenBlockHeader);
 
-        uint256 actualBlockNumber = headerSerialized.getBlockNumber();
-        require(actualBlockNumber == blockNumber, "ERR_INVALID_BLOCK_NUMBER");
+        StatelessMmr.verifyProof(
+            proof.blockProofLeafIndex,
+            blockHeaderHash,
+            proof.mmrElementInclusionProof,
+            proof.mmrPeaks,
+            proof.mmrTreeSize,
+            mmrRoot
+        );
+
+        uint256 actualBlockNumber = proof.provenBlockHeader.getBlockNumber();
+        require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
     function proveAccount(
-        uint256 headersTreeId,
-        uint256 blockNumber,
         address account,
-        uint256 blockProofLeafIndex,
-        bytes32 blockProofLeafValue,
-        uint256 mmrTreeSize,
-        bytes32[] calldata blockProof,
-        bytes32[] calldata mmrPeaks,
-        bytes calldata headerSerialized,
-        bytes calldata proof,
-        bytes32[] calldata namespaceInclusionProof
+        uint16 accountFieldsToSave,
+        Types.BlockHeaderProof calldata headerProof,
+        bytes calldata mptProof
     ) external {
         // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
-        _verifyMmrProof(headersTreeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
-
-        // Calculate the page at which the namespace is stored
-        uint256 namespaceBlocksPageId = blockNumber / TREE_WIDTH;
-        uint256 namespaceBlockrangeStart = namespaceBlocksPageId * TREE_WIDTH;
-        uint256 namespaceBlockrangeEnd = namespaceBlockrangeStart + TREE_WIDTH - 1;
-
-        bytes32 namespaceId = keccak256(abi.encodePacked(
-            bytes32("accounts"),
-            namespaceBlockrangeStart,
-            namespaceBlockrangeEnd,
-            account // TODO once we move to MMR add the roothash of the namespace
-        ));
+        _verifyMmrProof(headerProof);
 
         // Verify the account state proof
-        bytes32 stateRoot = headerSerialized.getStateRoot();
+        bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
         bytes32 proofPath = keccak256(abi.encodePacked(account));
-        bytes memory accountRLP = proof.verify(stateRoot, proofPath);
+        RLP.RLPItem[] memory accountFields = mptProof.verify(stateRoot, proofPath).toRLPItem().toList();
 
-        // Prepare the update to the namespace tree
-        bytes32 accountRlpHash = keccak256(accountRLP);
-        uint256 indexInTree = blockNumber - namespaceBlockrangeStart;
-
-        // Retrieve the current root of the namespace tree
-        bytes32 _tmp = namespaces[namespaceId]; // TODO come up with better name
-        bytes32 currentNamespaceRoot;
-        if(_tmp == bytes32(0)) {
-            currentNamespaceRoot = DEFAULT_ROOT;
-        } else {
-            currentNamespaceRoot = _tmp;
+        // Save the desired account properties to the storage
+        if (accountFieldsToSave.readBitAtIndexFromRight(0)) {
+            accountNonces[account][headerProof.blockNumber] = accountFields[ACCOUNT_NONCE_INDEX].toUint();
         }
 
-        // Update the namespace tree
-        bytes32 newNamespaceRoot = currentNamespaceRoot.updateElement(TREE_DEPTH, indexInTree, EMPTY_LEAF_HASH, accountRlpHash, namespaceInclusionProof);
-        namespaces[namespaceId] = newNamespaceRoot;
+        if (accountFieldsToSave.readBitAtIndexFromRight(1)) {
+            accountBalances[account][headerProof.blockNumber] = accountFields[ACCOUNT_BALANCE_INDEX].toUint();
+        }
+
+        if (accountFieldsToSave.readBitAtIndexFromRight(2)) {
+            accountCodeHashes[account][headerProof.blockNumber] = bytes32(accountFields[ACCOUNT_CODE_HASH_INDEX].toUint());
+        }
+
+        if (accountFieldsToSave.readBitAtIndexFromRight(3)) {
+            accountStorageHashes[account][headerProof.blockNumber] = bytes32(accountFields[ACCOUNT_STORAGE_ROOT_INDEX].toUint());
+        }
+
+        emit AccountProven(
+            account,
+            headerProof.blockNumber,
+            accountNonces[account][headerProof.blockNumber],
+            accountBalances[account][headerProof.blockNumber],
+            accountCodeHashes[account][headerProof.blockNumber],
+            accountStorageHashes[account][headerProof.blockNumber]
+        );        
     }
 
     function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external {
@@ -151,78 +134,78 @@ contract FactsRegistry {
         return output;
     }
 
-    function checkTransactionReceipt(
-        uint256 treeId,
-        uint256 blockNumber,
-        bytes32 rlpEncodedTxIndex,
-        uint256 blockProofLeafIndex,
-        bytes32 blockProofLeafValue,
-        uint256 mmrTreeSize,
-        bytes32[] calldata blockProof,
-        bytes32[] calldata mmrPeaks,
-        bytes calldata headerSerialized,
-        bytes calldata proof
-    ) public view returns (bytes memory receiptRlp) {
-        _verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
+    // function checkTransactionReceipt(
+    //     uint256 treeId,
+    //     uint256 blockNumber,
+    //     bytes32 rlpEncodedTxIndex,
+    //     uint256 blockProofLeafIndex,
+    //     bytes32 blockProofLeafValue,
+    //     uint256 mmrTreeSize,
+    //     bytes32[] calldata blockProof,
+    //     bytes32[] calldata mmrPeaks,
+    //     bytes calldata headerSerialized,
+    //     bytes calldata proof
+    // ) public view returns (bytes memory receiptRlp) {
+    //     _verifyMmrProof(treeId, blockNumber, blockProofLeafIndex, blockProofLeafValue, mmrTreeSize, blockProof, mmrPeaks, headerSerialized);
 
-        bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
+    //     bytes32 receiptsRoot = headerSerialized.getReceiptsRoot();
 
-        receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
-    }
+    //     receiptRlp = proof.verify(receiptsRoot, rlpEncodedTxIndex);
+    // }
 
-    function proveTransactionReceipt(
-        uint256 treeId,
-        uint16 paramsBitmap,
-        uint256 blockNumber,
-        bytes32 rlpEncodedTxIndex,
-        uint256 blockProofLeafIndex,
-        bytes32 blockProofLeafValue,
-        uint256 mmrTreeSize,
-        bytes32[] calldata blockProof,
-        bytes32[] calldata mmrPeaks,
-        bytes calldata headerSerialized,
-        bytes calldata proof
-    ) external returns (bytes memory receiptRlp) {
-        receiptRlp = checkTransactionReceipt(
-            treeId,
-            blockNumber,
-            rlpEncodedTxIndex,
-            blockProofLeafIndex,
-            blockProofLeafValue,
-            mmrTreeSize,
-            blockProof,
-            mmrPeaks,
-            headerSerialized,
-            proof
-        );
+    // function proveTransactionReceipt(
+    //     uint256 treeId,
+    //     uint16 paramsBitmap,
+    //     uint256 blockNumber,
+    //     bytes32 rlpEncodedTxIndex,
+    //     uint256 blockProofLeafIndex,
+    //     bytes32 blockProofLeafValue,
+    //     uint256 mmrTreeSize,
+    //     bytes32[] calldata blockProof,
+    //     bytes32[] calldata mmrPeaks,
+    //     bytes calldata headerSerialized,
+    //     bytes calldata proof
+    // ) external returns (bytes memory receiptRlp) {
+    //     receiptRlp = checkTransactionReceipt(
+    //         treeId,
+    //         blockNumber,
+    //         rlpEncodedTxIndex,
+    //         blockProofLeafIndex,
+    //         blockProofLeafValue,
+    //         mmrTreeSize,
+    //         blockProof,
+    //         mmrPeaks,
+    //         headerSerialized,
+    //         proof
+    //     );
 
-        if (receiptRlp[0] == 0x02 || receiptRlp[0] == 0x01) {
-            receiptRlp = removeFirstNibble(receiptRlp);
-        }
+    //     if (receiptRlp[0] == 0x02 || receiptRlp[0] == 0x01) {
+    //         receiptRlp = removeFirstNibble(receiptRlp);
+    //     }
 
-        RLP.RLPItem[] memory receiptItems = receiptRlp.toRLPItem().toList();
-        require(receiptItems.length == 4, "ERR_INVALID_RECEIPT_RLP");
+    //     RLP.RLPItem[] memory receiptItems = receiptRlp.toRLPItem().toList();
+    //     require(receiptItems.length == 4, "ERR_INVALID_RECEIPT_RLP");
 
-        // Store transaction status
-        if (paramsBitmap.readBitAtIndexFromRight(0)) {
-            transactionStatuses[blockNumber][rlpEncodedTxIndex] = receiptItems[0].toUint();
-        }
+    //     // Store transaction status
+    //     if (paramsBitmap.readBitAtIndexFromRight(0)) {
+    //         transactionStatuses[blockNumber][rlpEncodedTxIndex] = receiptItems[0].toUint();
+    //     }
 
-        // Store cumulative gas used
-        if (paramsBitmap.readBitAtIndexFromRight(1)) {
-            transactionsCumulativeGasUsed[blockNumber][rlpEncodedTxIndex] = receiptItems[1].toUint();
-        }
+    //     // Store cumulative gas used
+    //     if (paramsBitmap.readBitAtIndexFromRight(1)) {
+    //         transactionsCumulativeGasUsed[blockNumber][rlpEncodedTxIndex] = receiptItems[1].toUint();
+    //     }
 
-        // Store logs bloom
-        if (paramsBitmap.readBitAtIndexFromRight(2)) {
-            transactionsLogsBlooms[blockNumber][rlpEncodedTxIndex] = receiptItems[2].toBytes();
-        }
+    //     // Store logs bloom
+    //     if (paramsBitmap.readBitAtIndexFromRight(2)) {
+    //         transactionsLogsBlooms[blockNumber][rlpEncodedTxIndex] = receiptItems[2].toBytes();
+    //     }
 
-        // Store logs
-        if (paramsBitmap.readBitAtIndexFromRight(3)) {
-            transactionsLogs[blockNumber][rlpEncodedTxIndex] = receiptItems[3].toRLPBytes();
-        }
+    //     // Store logs
+    //     if (paramsBitmap.readBitAtIndexFromRight(3)) {
+    //         transactionsLogs[blockNumber][rlpEncodedTxIndex] = receiptItems[3].toRLPBytes();
+    //     }
 
-        emit TransactionProven(blockNumber, rlpEncodedTxIndex, receiptRlp);
-    }
+    //     emit TransactionProven(blockNumber, rlpEncodedTxIndex, receiptRlp);
+    // }
 }
