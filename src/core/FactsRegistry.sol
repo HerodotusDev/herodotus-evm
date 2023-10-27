@@ -57,7 +57,7 @@ contract FactsRegistry {
     function _verifyMmrProof(
         Types.BlockHeaderProof memory proof
     ) internal view {
-        (,bytes32 mmrRoot,) = headersProcessor.mmrs(proof.treeId);
+        bytes32 mmrRoot = headersProcessor.getMMRRoot(proof.treeId, proof.mmrTreeSize);
         require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
         bytes32 blockHeaderHash = keccak256(proof.provenBlockHeader);

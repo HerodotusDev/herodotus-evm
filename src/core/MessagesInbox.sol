@@ -21,8 +21,8 @@ contract MessagesInbox {
         emit ReceivedParentHash(uint8(1), parentHash, blockNumber); // TODO: Handle originChainId
     }
 
-    function receiveKeccakMMR(uint256 treeId, uint256 mmrSize, bytes32 keccakMMRRoot) external onlyCrossdomainCounterpart {
-        headersProcessor.receiveExistingFromL1(treeId, mmrSize, keccakMMRRoot);
+    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot) external onlyCrossdomainCounterpart {
+        headersProcessor.createBranchFromMessage(keccakMMRRoot, mmrSize, aggregatorId);
     }
 
     modifier onlyCrossdomainCounterpart() {
