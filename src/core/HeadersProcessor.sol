@@ -145,29 +145,28 @@ contract HeadersProcessor {
     }
 
     /// @notice Creates a new branch from an existing MMR, effectively cloning it
-    /// @param treeId the ID of the MMR from which the new MMR will be created
-    /// @param detachFromTreeId the ID of the MMR from which the new MMR will be created
-    function createBranchFromExisting(uint256 treeId, uint256 detachFromTreeId) external {
+    /// @param mmrId the ID of the MMR from which the new MMR will be created
+    /// @param mmrSize the ID of the MMR from which the new MMR will be created
+    function createBranchFromExisting(uint256 mmrId, uint256 mmrSize) external {
         // 1. Load existing MMR data
-        uint256 latestSize = mmrs[treeId].latestSize;
-        bytes32 latestRoot = mmrs[treeId].mmrSizeToRoot[latestSize];
+        bytes32 root = mmrs[mmrId].mmrSizeToRoot[mmrSize];
 
         // 2. Ensure the given MMR is not empty
-        require(latestRoot != bytes32(0), "ERR_MMR_DOES_NOT_EXIST");
+        require(root != bytes32(0), "ERR_MMR_DOES_NOT_EXIST");
 
         // 3. Assign an ID to the new MMR
         uint256 currentMMRsCount = mmrsCount.current();
         uint256 newMMRId = currentMMRsCount + 1;
 
         // 4. Copy the existing MMR data to the new MMR
-        mmrs[newMMRId].latestSize = latestSize;
-        mmrs[newMMRId].mmrSizeToRoot[latestSize] = latestRoot;
+        mmrs[newMMRId].latestSize = mmrSize;
+        mmrs[newMMRId].mmrSizeToRoot[mmrSize] = root;
 
         // 5. Update the MMRs count
         mmrsCount.increment();
 
         // 6. Emit the event
-        emit BranchCreatedClone(newMMRId, treeId, latestSize);
+        emit BranchCreatedClone(newMMRId, mmrId, mmrSize);
     }
 
 

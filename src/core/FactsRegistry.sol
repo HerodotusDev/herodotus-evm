@@ -119,13 +119,34 @@ contract FactsRegistry {
         );        
     }
 
-    // function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes memory storageProof) external {
-    //     bytes32 root = accountStorageHashes[account][blockNumber];
-    //     require(root != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
-    //     bytes32 proofPath = keccak256(abi.encodePacked(slot));
-    //     bytes32 slotValue = bytes32(storageProof.verify(root, proofPath).toRLPItem().toUint());
-    //     accountStorageSlotValues[account][blockNumber][slot] = slotValue;
-    // }
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, Types.StorageSlotTrieProof calldata storageSlotTrieProof) external {
+        bytes32 storageRoot = accountStorageHashes[account][blockNumber];
+        require(storageRoot != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
+
+        bool isStorageProofValid = SecureMerkleTrie.verifyInclusionProof(
+            abi.encode(slot),
+            storageSlotTrieProof.slotValue,
+            storageSlotTrieProof.trieProof,
+            storageRoot
+        );
+        require(isStorageProofValid, "ERR_INVALID_STORAGE_PROOF");
+
+        bytes memory slotValueBytes = storageSlotTrieProof.slotValue;
+        bytes32 slotValue;
+        assembly {
+            slotValue := mload(add(slotValueBytes, 32))
+        }
+
+        accountStorageSlotValues[account][blockNumber][slot] = slotValue;
+    }
+
+    function verifyAccount() external view {
+        // TODO
+    }
+
+    function verifyStorage() external view {
+        // TODO
+    }
 
     function _verifyAccumulatedHeaderProof(
         Types.BlockHeaderProof memory proof
