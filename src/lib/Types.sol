@@ -11,4 +11,9 @@ library Types {
         bytes32[] mmrElementInclusionProof;
         bytes provenBlockHeader;
     }
+
+    struct AccountTrieProof {
+        bytes[] trieProof;
+        bytes accountRLP; // This might be not needed as the last element of the trieProof contains the accountRLP
+    }
 }

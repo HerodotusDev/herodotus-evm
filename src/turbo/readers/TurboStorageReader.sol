@@ -3,13 +3,13 @@ pragma solidity 0.8.19;
 
 import {ITurboInvoker} from "../interfaces/ITurboInvoker.sol";
 import {IStorageLayoutsRepository, IStorageVariableToSlotMapper} from "../interfaces/IStorageLayoutsRepository.sol";
-import {ITurboSwap} from "../interfaces/ITurboSwap.sol";
+import {IQuerableTurboSwap} from "../interfaces/IQuerableTurboSwap.sol";
 
 
 contract TurboStorageReader {
-    ITurboSwap public immutable turboSwap;
+    IQuerableTurboSwap public immutable turboSwap;
 
-    constructor(ITurboSwap _turboswap) {
+    constructor(IQuerableTurboSwap _turboswap) {
         turboSwap = _turboswap;
     }
 

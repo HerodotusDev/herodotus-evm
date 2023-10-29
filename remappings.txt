@@ -2,3 +2,4 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/openzeppelin-contracts/
 solidity-mmr/=lib/solidity-mmr/src/
+@optimism/=lib/ethereum-optimism/packages/contracts-bedrock/src/

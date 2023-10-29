@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
-import {EVMHeaderRLP} from "../../lib/EVMHeaderRLP.sol";
-import {HeaderProperty} from "../interfaces/ITurboSwap.sol";
+import {HeadersProcessor} from "../../../core/HeadersProcessor.sol";
+import {EVMHeaderRLP} from "../../../lib/EVMHeaderRLP.sol";
+import {HeaderProperty} from "../../interfaces/IQuerableTurboSwap.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
@@ -11,6 +11,7 @@ import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 // TODO: implement
 abstract contract TurboSwapHeaders {
     using EVMHeaderRLP for bytes;
+    
     struct HeaderPropertiesAttestation {
         uint256 chainId;
         HeaderProperty[] properties;

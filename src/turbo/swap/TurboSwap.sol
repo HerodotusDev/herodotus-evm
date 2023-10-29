@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {TurboSwapStorageSlots} from "./StorageSlots.sol";
-import {TurboSwapAccounts} from "./Accounts.sol";
-import {TurboSwapHeaders} from "./Headers.sol";
+import {TurboSwapStorageSlots} from "./scoping/StorageSlotsScope.sol";
+import {TurboSwapAccounts} from "./scoping/AccountsScope.sol";
+import {TurboSwapHeaders} from "./scoping/HeadersScope.sol";
 
 
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
 import {TurboAuctioningSystem} from "../proving-slot-assignment/TurboAuctioningSystem.sol";
 
-import {ITurboSwap, AccountProperty, HeaderProperty} from "../interfaces/ITurboSwap.sol";
+import {IQuerableTurboSwap, AccountProperty, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
 
-contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, ITurboSwap {
+contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, IQuerableTurboSwap {
     
     // chainid => FactsRegistry
     mapping(uint256 => FactsRegistry) public factsRegistries;

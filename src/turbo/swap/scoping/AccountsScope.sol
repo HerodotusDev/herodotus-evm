@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {FactsRegistry} from "../../core/FactsRegistry.sol";
+import {FactsRegistry} from "../../../core/FactsRegistry.sol";
 
-import {AccountProperty} from "../interfaces/ITurboSwap.sol";
+import {AccountProperty} from "../../interfaces/IQuerableTurboSwap.sol";
 
 abstract contract TurboSwapAccounts {
     struct AccountAttestation {

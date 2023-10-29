@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {TurboSwapStorageSlots} from "./StorageSlots.sol";
-import {TurboSwapAccounts} from "./Accounts.sol";
-import {TurboSwapHeaders} from "./Headers.sol";
+import {TurboSwapStorageSlots} from "./scoping/StorageSlotsScope.sol";
+import {TurboSwapAccounts} from "./scoping/AccountsScope.sol";
+import {TurboSwapHeaders} from "./scoping/HeadersScope.sol";
 
 
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
 
-import {ITurboSwap, AccountProperty, HeaderProperty} from "../interfaces/ITurboSwap.sol";
+import {IQuerableTurboSwap, AccountProperty, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
 
 
 // This contract will be the implementation behind the proxy, so it will have access to the state of the actual swap.
-contract TurboSwapDiscoveryMode is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, ITurboSwap {
+contract TurboSwapDiscoveryMode is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, IQuerableTurboSwap {
     event IdentifiedUnsetStorageSlot(uint256 chainId, uint256 blockNumber, address account, bytes32 slot);
     event IdentifiedUnsetAccountProperty(uint256 chainId, uint256 blockNumber, address account, AccountProperty property);
     event IdentifiedUnsetHeaderProperty(uint256 chainId, uint256 blockNumber, HeaderProperty property);

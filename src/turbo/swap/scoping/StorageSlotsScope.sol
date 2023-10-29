@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {FactsRegistry} from "../../core/FactsRegistry.sol";
+import {FactsRegistry} from "../../../core/FactsRegistry.sol";
 
 abstract contract TurboSwapStorageSlots {
     struct StorageSlotAttestation {
