@@ -146,7 +146,7 @@ contract HeadersProcessor {
 
     /// @notice Creates a new branch from an existing MMR, effectively cloning it
     /// @param mmrId the ID of the MMR from which the new MMR will be created
-    /// @param mmrSize the ID of the MMR from which the new MMR will be created
+    /// @param mmrSize size at which the MMR will be copied
     function createBranchFromExisting(uint256 mmrId, uint256 mmrSize) external {
         // 1. Load existing MMR data
         bytes32 root = mmrs[mmrId].mmrSizeToRoot[mmrSize];
