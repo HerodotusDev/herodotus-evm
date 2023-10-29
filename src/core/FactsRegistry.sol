@@ -59,11 +59,10 @@ contract FactsRegistry {
         Types.AccountTrieProof calldata accountTrieProof
     ) external {
         // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
-        _verifyMmrProof(headerProof);
+        _verifyAccumulatedHeaderProof(headerProof);
 
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
-        bytes32 proofPath = keccak256(abi.encodePacked(account));
         bool isAccountProofValid = SecureMerkleTrie.verifyInclusionProof(
             abi.encode(account),
             accountTrieProof.accountRLP,
@@ -128,7 +127,7 @@ contract FactsRegistry {
     //     accountStorageSlotValues[account][blockNumber][slot] = slotValue;
     // }
 
-    function _verifyMmrProof(
+    function _verifyAccumulatedHeaderProof(
         Types.BlockHeaderProof memory proof
     ) internal view {
         bytes32 mmrRoot = headersProcessor.getMMRRoot(proof.treeId, proof.mmrTreeSize);
