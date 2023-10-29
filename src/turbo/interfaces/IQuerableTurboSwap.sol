@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-enum AccountProperty {
-  NONCE,
-  BALANCE,
-  STORAGE_HASH,
-  CODE_HASH
-}
 
 enum HeaderProperty {
   TIMESTAMP,
@@ -18,6 +12,8 @@ enum HeaderProperty {
   PARENT_HASH,
   MIX_HASH
 }
+
+import {Types} from "../../lib/Types.sol";
 
 interface IQuerableTurboSwap {
   function storageSlots(
@@ -31,7 +27,7 @@ interface IQuerableTurboSwap {
     uint256 chainId,
     uint256 blockNumber,
     address account,
-    AccountProperty property
+    Types.AccountFields field
   ) external returns (bytes32);
 
   function headers(

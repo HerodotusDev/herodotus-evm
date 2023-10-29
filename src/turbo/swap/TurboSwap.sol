@@ -10,10 +10,10 @@ import {FactsRegistry} from "../../core/FactsRegistry.sol";
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
 import {TurboAuctioningSystem} from "../proving-slot-assignment/TurboAuctioningSystem.sol";
 
-import {IQuerableTurboSwap, AccountProperty, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
+import {IQuerableTurboSwap, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
+import {Types} from "../../lib/Types.sol";
 
 contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, IQuerableTurboSwap {
-    
     // chainid => FactsRegistry
     mapping(uint256 => FactsRegistry) public factsRegistries;
     TurboAuctioningSystem public auctioningSystem;
@@ -40,8 +40,8 @@ contract TurboSwap is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders
         return value;
     }
 
-    function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external override returns (bytes32) {
-        bytes32 value = _accounts[chainId][blockNumber][account][property];
+    function accounts(uint256 chainId, uint256 blockNumber, address account, Types.AccountFields field) external override returns (bytes32) {
+        bytes32 value = _accounts[chainId][blockNumber][account][field];
         require(value != bytes32(0), "TurboSwap: Account property not set"); // TODO handle case in which it is actually 0
         return value;
     }

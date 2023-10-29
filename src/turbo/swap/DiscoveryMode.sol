@@ -9,13 +9,15 @@ import {TurboSwapHeaders} from "./scoping/HeadersScope.sol";
 import {FactsRegistry} from "../../core/FactsRegistry.sol";
 import {HeadersProcessor} from "../../core/HeadersProcessor.sol";
 
-import {IQuerableTurboSwap, AccountProperty, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
+import {IQuerableTurboSwap, HeaderProperty} from "../interfaces/IQuerableTurboSwap.sol";
+
+import {Types} from "../../lib/Types.sol";
 
 
 // This contract will be the implementation behind the proxy, so it will have access to the state of the actual swap.
 contract TurboSwapDiscoveryMode is TurboSwapStorageSlots, TurboSwapAccounts, TurboSwapHeaders, IQuerableTurboSwap {
     event IdentifiedUnsetStorageSlot(uint256 chainId, uint256 blockNumber, address account, bytes32 slot);
-    event IdentifiedUnsetAccountProperty(uint256 chainId, uint256 blockNumber, address account, AccountProperty property);
+    event IdentifiedUnsetAccountProperty(uint256 chainId, uint256 blockNumber, address account, Types.AccountFields field);
     event IdentifiedUnsetHeaderProperty(uint256 chainId, uint256 blockNumber, HeaderProperty property);
 
     // chainid => FactsRegistry
@@ -41,10 +43,10 @@ contract TurboSwapDiscoveryMode is TurboSwapStorageSlots, TurboSwapAccounts, Tur
         return value;
     }
 
-    function accounts(uint256 chainId, uint256 blockNumber, address account, AccountProperty property) external override returns (bytes32) {
-        bytes32 value = _accounts[chainId][blockNumber][account][property];
+    function accounts(uint256 chainId, uint256 blockNumber, address account, Types.AccountFields field) external override returns (bytes32) {
+        bytes32 value = _accounts[chainId][blockNumber][account][field];
         if(value == bytes32(0)) { // TODO handle case in which it is actually 0
-            emit IdentifiedUnsetAccountProperty(chainId, blockNumber, account, property);
+            emit IdentifiedUnsetAccountProperty(chainId, blockNumber, account, field);
         }
         return value;
     }

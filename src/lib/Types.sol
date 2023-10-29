@@ -21,4 +21,11 @@ library Types {
         bytes[] trieProof;
         bytes slotValue; // TODO This might be not needed as the last element of the trieProof contains the slotValue
     }
+
+    enum AccountFields {
+        NONCE,
+        BALANCE,
+        STORAGE_ROOT,
+        CODE_HASH
+    }
 }
