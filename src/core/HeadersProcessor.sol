@@ -277,4 +277,8 @@ contract HeadersProcessor {
         uint256 latestSize = mmrs[mmrId].latestSize;
         return mmrs[mmrId].mmrSizeToRoot[latestSize];
     }
+
+    function getLatestMMRSize(uint256 mmrId) external view returns (uint256) {
+        return mmrs[mmrId].latestSize;
+    }
 }

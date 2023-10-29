@@ -75,7 +75,8 @@ contract TimestampToBlockNumberMapper {
 
                 // In this case SLOAD from HeaderProcessor is needed
                 if(root == bytes32(0)) {
-                    (uint256 mmrSize, bytes32 mmrRoot, ) = headersProcessor.mmrs(blocksToRemap[i].includedInTreeId);
+                    uint256 mmrSize = headersProcessor.getLatestMMRSize(blocksToRemap[i].includedInTreeId); // TODO wrong
+                    bytes32 mmrRoot = headersProcessor.getLatestMMRRoot(blocksToRemap[i].includedInTreeId); // TODO wrong
                     assembly ("memory-safe") { // TODO idk what memory-safe actually does
                         root := mmrRoot
                         elementsCount := mmrSize

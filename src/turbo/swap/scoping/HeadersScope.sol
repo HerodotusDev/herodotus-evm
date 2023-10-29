@@ -46,7 +46,7 @@ abstract contract TurboSwapHeaders {
             HeadersProcessor headersProcessor = _getHeadersProcessorForChain(attestation.chainId);
             require(address(headersProcessor) != address(0), "TurboSwap: Unknown chain id");
 
-            (,bytes32 mmrRoot,) = headersProcessor.mmrs(attestation.treeId);
+            bytes32 mmrRoot = headersProcessor.getLatestMMRRoot(attestation.treeId); // TODO this should include size
             require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
             require(keccak256(attestation.headerSerialized) == attestation.blockProofLeafValue, "ERR_INVALID_PROOF_LEAF");
