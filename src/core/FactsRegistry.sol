@@ -47,22 +47,8 @@ contract FactsRegistry {
         Types.BlockHeaderProof calldata headerProof,
         Types.AccountTrieProof calldata accountTrieProof
     ) external {
-        // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
-        _verifyAccumulatedHeaderProof(headerProof);
-
-        // Verify the account state proof
-        bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
-        bool isAccountProofValid = SecureMerkleTrie.verifyInclusionProof(
-            abi.encode(account),
-            accountTrieProof.accountRLP,
-            accountTrieProof.trieProof,
-            stateRoot
-        );
-        require(isAccountProofValid, "ERR_INVALID_ACCOUNT_PROOF");
-        RLPReader.RLPItem[] memory accountFields = accountTrieProof.accountRLP.toRLPItem().readList();
-
-        // Decode the account fields
-        (uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) = _decodeAccountFields(accountFields);
+        // Verify the proof and decode the account fields
+        (uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) = verifyAccount(account, headerProof, accountTrieProof);
 
         // Save the desired account properties to the storage
         if (accountFieldsToSave.readBitAtIndexFromRight(0)) {
@@ -92,6 +78,36 @@ contract FactsRegistry {
     }
 
     function proveStorage(address account, uint256 blockNumber, bytes32 slot, Types.StorageSlotTrieProof calldata storageSlotTrieProof) external {
+        // Verify the proof and decode the slot value
+        bytes32 slotValue = verifyStorage(account, blockNumber, slot, storageSlotTrieProof);
+        accountStorageSlotValues[account][blockNumber][slot] = slotValue;
+        // TODO: Emit an event ?
+    }
+
+    function verifyAccount(        
+        address account,
+        Types.BlockHeaderProof calldata headerProof,
+        Types.AccountTrieProof calldata accountTrieProof
+    ) public view returns(uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) {
+        // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
+        _verifyAccumulatedHeaderProof(headerProof);
+
+        // Verify the account state proof
+        bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
+        bool isAccountProofValid = SecureMerkleTrie.verifyInclusionProof(
+            abi.encode(account),
+            accountTrieProof.accountRLP,
+            accountTrieProof.trieProof,
+            stateRoot
+        );
+        require(isAccountProofValid, "ERR_INVALID_ACCOUNT_PROOF");
+        RLPReader.RLPItem[] memory accountFields = accountTrieProof.accountRLP.toRLPItem().readList();
+
+        // Decode the account fields
+        (nonce, accountBalance, codeHash, storageRoot) = _decodeAccountFields(accountFields);
+    }
+
+    function verifyStorage(address account, uint256 blockNumber, bytes32 slot, Types.StorageSlotTrieProof calldata storageSlotTrieProof) public view returns(bytes32 slotValue) {
         bytes32 storageRoot = accountField[account][blockNumber][Types.AccountFields.STORAGE_ROOT];
         require(storageRoot != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
 
@@ -108,16 +124,6 @@ contract FactsRegistry {
         assembly {
             slotValue := mload(add(slotValueBytes, 32))
         }
-
-        accountStorageSlotValues[account][blockNumber][slot] = slotValue;
-    }
-
-    function verifyAccount() external view {
-        // TODO
-    }
-
-    function verifyStorage() external view {
-        // TODO
     }
 
     function _verifyAccumulatedHeaderProof(
