@@ -12,6 +12,9 @@ import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 
 
+import "forge-std/console.sol";
+
+
 contract FactsRegistry {
     using EVMHeaderRLP for bytes;
     using Bitmap16 for uint16;
@@ -99,8 +102,9 @@ contract FactsRegistry {
 
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
+        // TODO in case the account is not present in the state trie, the proof will fail
         bytes memory accountRLP = SecureMerkleTrie.get(
-            abi.encode(account),
+            abi.encodePacked(account),
             accountTrieProof,
             stateRoot
         );

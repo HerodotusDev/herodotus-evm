@@ -1,6 +1,7 @@
 require("dotenv").config();
 const axios = require("axios");
 const RLP = require("rlp");
+const { utils } = require("ethers");
 
 /**
  *
@@ -18,7 +19,7 @@ async function main() {
 
   const blockArgStr = process.argv[2];
   const accountArgStr = process.argv[3];
-  const slotArgStr = process.argv[4];
+  let slotArgStr = process.argv[4];
   const proofType = process.argv[5];
 
   if (!blockArgStr) throw new Error("Block number has not been provided");
@@ -32,7 +33,7 @@ async function main() {
   const blockNumber = Number(blockArgStr);
 
   let proof;
-  if (!OFFLINE) {
+  if (!OFFLINE || OFFLINE === "false") {
     const rpcBody = {
       jsonrpc: "2.0",
       method: "eth_getProof",
@@ -43,6 +44,10 @@ async function main() {
     proof = rpcResponse.data.result;
   } else {
     const cached = require("../cached_state_proofs.json");
+    slotArgStr =
+      proofType === "account"
+        ? Object.keys(cached["GOERLI"][blockArgStr][accountArgStr])[0]
+        : slotArgStr;
     proof = cached["GOERLI"][blockArgStr][accountArgStr][slotArgStr];
     if (!proof)
       throw new Error(
@@ -50,15 +55,14 @@ async function main() {
       );
   }
 
-  if (proofType === "account") {
-    console.log(encodeProof(proof.accountProof));
-    return;
-  }
+  const trieProof =
+    proofType === "account" ? proof.accountProof : proof.storageProof[0].proof;
 
-  if (proofType === "slot") {
-    console.log(encodeProof(proof.storageProof[0].proof));
-    return;
-  }
+  const encoder = new utils.AbiCoder();
+
+  const encodedProof = encoder.encode(["bytes[]"], [trieProof]);
+  // const result = encodeProof(trieProof);
+  console.log(encodedProof);
 }
 
 main();

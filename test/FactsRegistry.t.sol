@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
+import {Types} from "../src/lib/Types.sol";
 
 uint256 constant DEFAULT_TREE_ID = 0;
 
@@ -31,7 +32,38 @@ contract FactsRegistry_Test is Test {
     }
 
     function test_proveAccount() public {
-        (bytes32[] memory peaks, bytes32[] memory inclusionProof) = _peaksAndInclusionProofForBlock7583802();
+        (bytes32[] memory peaks, bytes32[] memory mmrInclusionProof) = _peaksAndInclusionProofForBlock7583802();
+        
+        address accountToProve = 0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6;
+        uint256 proveForBlock = 7583802;
+        
+        bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
+        bytes[] memory accountProof = _getAccountProof(proveForBlock, accountToProve);
+
+        // TODO something silly is happening here
+        Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
+            treeId: DEFAULT_TREE_ID,
+            mmrTreeSize: 7,
+            blockNumber: proveForBlock,
+            blockProofLeafIndex: 1,
+            mmrPeaks: peaks,
+            mmrElementInclusionProof: mmrInclusionProof,
+            provenBlockHeader: rlpHeader
+        });
+        factsRegistry.proveAccount(accountToProve, type(uint16).max, headerProof, accountProof);
+    }
+
+    function _getAccountProof(uint256 blockNumber, address account) internal returns(bytes[] memory) {
+        string[] memory inputs = new string[](6);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/state-proofs/fetch_state_proof.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = uint256(uint160(account)).toHexString();
+        inputs[4] = "0x0"; // storage key
+        inputs[5] = "account"; // storage value
+        bytes memory abiEncoded = vm.ffi(inputs);
+        bytes[] memory accountProof = abi.decode(abiEncoded, (bytes[]));
+        return accountProof;
     }
 
     function _peaksAndInclusionProofForBlock7583802() internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
