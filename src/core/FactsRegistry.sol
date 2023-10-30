@@ -110,6 +110,10 @@ contract FactsRegistry {
         );
         RLPReader.RLPItem[] memory accountFields = accountRLP.toRLPItem().readList();
 
+        console.logBytes(
+            accountRLP.toRLPItem().readRawBytes()
+        );
+
         // Decode the account fields
         (nonce, accountBalance, codeHash, storageRoot) = _decodeAccountFields(accountFields);
     }
@@ -156,29 +160,30 @@ contract FactsRegistry {
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
-    function _decodeAccountFields(RLPReader.RLPItem[] memory accountFields) internal pure returns(uint256, uint256, bytes32, bytes32) {
-        bytes memory nonceBytes = accountFields[ACCOUNT_NONCE_INDEX].readBytes();
+    function _decodeAccountFields(RLPReader.RLPItem[] memory accountFields) internal view returns(uint256, uint256, bytes32, bytes32) {
+        bytes memory nonceBytes = accountFields[ACCOUNT_NONCE_INDEX].readBytes(); // This is correct
         uint256 nonce;
+        // TODO this needs to be fixed, it's not working too much data is loaded from memory into the variable
         assembly {
-            nonce := mload(add(nonceBytes, 32))
+            nonce := mload(add(nonceBytes, 0x1))
         }
 
         bytes memory balanceBytes = accountFields[ACCOUNT_BALANCE_INDEX].readBytes();
         uint256 accountBalance;
         assembly {
-            accountBalance := mload(add(balanceBytes, 32))
+            accountBalance := mload(add(balanceBytes, 0x20))
         }
 
         bytes memory codeHashBytes = accountFields[ACCOUNT_CODE_HASH_INDEX].readBytes();
         bytes32 codeHash;
         assembly {
-            codeHash := mload(add(codeHashBytes, 32))
+            codeHash := mload(add(codeHashBytes, 0x20))
         }
 
         bytes memory storageRootBytes = accountFields[ACCOUNT_STORAGE_ROOT_INDEX].readBytes();
         bytes32 storageRoot;
         assembly {
-            storageRoot := mload(add(storageRootBytes, 32))
+            storageRoot := mload(add(storageRootBytes, 0x20))
         }
 
         return (nonce, accountBalance, codeHash, storageRoot);

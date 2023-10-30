@@ -51,6 +51,12 @@ contract FactsRegistry_Test is Test {
             provenBlockHeader: rlpHeader
         });
         factsRegistry.proveAccount(accountToProve, type(uint16).max, headerProof, accountProof);
+
+        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
+        // assertEq(savedNonce, 1);
+
+        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
+        assertEq(accountStorageRoot, 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
     }
 
     function _getAccountProof(uint256 blockNumber, address account) internal returns(bytes[] memory) {
