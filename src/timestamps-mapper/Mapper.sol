@@ -1,30 +1,31 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {HeadersProcessor} from "../core/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
+import {Types} from "../lib/Types.sol";
+
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
+import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 
 contract TimestampToBlockNumberMapper {
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
 
-    struct Mapper {
+    /// @notice struct stored in the contract storage, represents the mapper
+    struct MapperInfo {
+        /// @notice startsFromBlock represents the block number from which the remapping MMR starts
         uint256 startsFromBlock;
-        uint256 latestBlockNumberAppended;
-        bytes32 root;
+
+        /// @notice latestSize represents the latest size of the MMR
+        uint256 latestSize;
+
+        /// @notice mmrSizeToRoot maps the MMR size to the MMR root, that way we have automatic versioning
+        mapping(uint256 => bytes32) mmrSizeToRoot;
     }
 
-    // Calldata encoding facilitator
-    struct RemappedBlock {
-        uint256 includedInTreeId;
-        uint256 leafIndexInUnorderedTree;
-        bytes32 leafValueInUnorderedTree;
-        bytes32[] inclusionProof;
-        bytes32[] peaks;
-        bytes header;
-    }
-
-    // Calldata encoding facilitator
+    /// @notice struct passed as calldata, represents the binsearch path element
     struct BinsearchPathElement {
         uint256 leafIndex;
         bytes32 leafValue;
@@ -37,37 +38,48 @@ contract TimestampToBlockNumberMapper {
     HeadersProcessor public immutable headersProcessor;
 
     uint256 public mappersCount;
-    mapping(uint256 => Mapper) public mappers; // TODO memento pattern
+    mapping(uint256 => MapperInfo) public mappers; // TODO memento pattern
 
     constructor(HeadersProcessor _headersProcessor) {
         headersProcessor = _headersProcessor;
     }
 
+    /// @notice creates a new mapper
+    /// @param _startsFromBlock the block number from which the remapping MMR starts
+    /// @return mapperId the id of the created mapper
     function createMapper(uint256 _startsFromBlock) external returns (uint256 mapperId) {
-        mappers[mappersCount] = Mapper(_startsFromBlock, type(uint256).max, bytes32(0));
+        mapperId = mappersCount;
+        mappers[mapperId].startsFromBlock = _startsFromBlock;
         emit MapperCreated(mapperId, _startsFromBlock);
         mappersCount++;
     }
 
-    function remapBlocks(uint256 targettedMapId, bytes32[] calldata lastPeaks, RemappedBlock[] calldata blocksToRemap) external {
-        Mapper memory mapper = mappers[targettedMapId];
-        require(mapper.startsFromBlock != 0, "ERR_MAPPER_DOES_NOT_EXIST"); // TODO this has to be handled
+    /// @notice appends a batch of headers to the remapping MMR
+    /// @param targettedMapId the id of the mapper to which the headers are appended
+    /// @param lastPeaks the peaks of the grown remapping MMR
+    /// @param headersWithProofs the headers with their proofs against the MMR managed by the headers processor
+    function reindexBatch(uint256 targettedMapId, bytes32[] calldata lastPeaks, Types.BlockHeaderProof[] calldata headersWithProofs) external {
+        uint256 mapperStartBlock = mappers[targettedMapId].startsFromBlock;
+        require(mapperStartBlock != 0, "ERR_MAPPER_DOES_NOT_EXIST"); // TODO handle 0 start block
+
+        uint256 mapperLatestSize = mappers[targettedMapId].latestSize;
+        bytes32 mapperLatestRoot = mappers[targettedMapId].mmrSizeToRoot[mapperLatestSize];
+
+        uint256 mapperLeavesCount = StatelessMmrHelpers.mmrSizeToLeafCount(mapperLatestSize);
 
         bytes32[] memory nextPeaks = lastPeaks;
-        uint256 nextElementsCount = mapper.latestBlockNumberAppended - mapper.startsFromBlock;
-        bytes32 nextRoot = mapper.root;
+        uint256 nextSize = mapperLatestSize;
+        bytes32 nextRoot = mapperLatestRoot;
 
-        uint256 firstBlockAppended = mapper.latestBlockNumberAppended == type(uint).max ? mapper.startsFromBlock : mapper.latestBlockNumberAppended + 1;
+        uint256 firstBlockAppended = Math.max(mapperStartBlock, mapperStartBlock + mapperLeavesCount);
         uint256 nextExpectedBlockAppended = firstBlockAppended;
 
-        for(uint256 i = 0 ; i < blocksToRemap.length; i++) {
-            require(keccak256(blocksToRemap[i].header) == blocksToRemap[i].leafValueInUnorderedTree, "ERR_INVALID_HEADER");
-            
+        for(uint256 i = 0 ; i < headersWithProofs.length; i++) {            
             bytes32 root;
             uint256 elementsCount;
 
             {
-                bytes32 hashmapIndex = keccak256(abi.encodePacked(blocksToRemap[i].includedInTreeId + _HASHMAP_KEY_OFFSET)); // TODO use more efficient hash function
+                bytes32 hashmapIndex = keccak256(abi.encodePacked(headersWithProofs[i].treeId + _HASHMAP_KEY_OFFSET)); // TODO use more efficient hash function
                 assembly ("memory-safe") { // TODO idk what memory-safe actually does
                     root := mload(add(hashmapIndex, 32))
                     elementsCount := mload(add(hashmapIndex, 64))
@@ -75,8 +87,8 @@ contract TimestampToBlockNumberMapper {
 
                 // In this case SLOAD from HeaderProcessor is needed
                 if(root == bytes32(0)) {
-                    uint256 mmrSize = headersProcessor.getLatestMMRSize(blocksToRemap[i].includedInTreeId); // TODO wrong
-                    bytes32 mmrRoot = headersProcessor.getLatestMMRRoot(blocksToRemap[i].includedInTreeId); // TODO wrong
+                    uint256 mmrSize = headersProcessor.getLatestMMRSize(headersWithProofs[i].treeId); // TODO wrong
+                    bytes32 mmrRoot = headersProcessor.getLatestMMRRoot(headersWithProofs[i].treeId); // TODO wrong
                     assembly ("memory-safe") { // TODO idk what memory-safe actually does
                         root := mmrRoot
                         elementsCount := mmrSize
@@ -88,31 +100,36 @@ contract TimestampToBlockNumberMapper {
             }
 
             StatelessMmr.verifyProof(
-                blocksToRemap[i].leafIndexInUnorderedTree,
-                blocksToRemap[i].leafValueInUnorderedTree,
-                blocksToRemap[i].inclusionProof,
-                blocksToRemap[i].peaks,
+                headersWithProofs[i].blockProofLeafIndex,
+                keccak256(headersWithProofs[i].provenBlockHeader),
+                headersWithProofs[i].mmrElementInclusionProof,
+                headersWithProofs[i].mmrPeaks,
                 elementsCount,
                 root
             );
 
-            uint256 blockNumber = EVMHeaderRLP.getBlockNumber(blocksToRemap[i].header);
+            uint256 blockNumber = EVMHeaderRLP.getBlockNumber(headersWithProofs[i].provenBlockHeader);
             require(blockNumber == nextExpectedBlockAppended, "ERR_BLOCK_NUMBER_TOO_LOW");
-            uint256 timestamp = EVMHeaderRLP.getTimestamp(blocksToRemap[i].header);
-            (nextElementsCount, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextElementsCount, nextRoot);
+            uint256 timestamp = EVMHeaderRLP.getTimestamp(headersWithProofs[i].provenBlockHeader);
+            (nextSize, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextSize, nextRoot);
             nextExpectedBlockAppended++;
         }
 
-        mappers[targettedMapId].latestBlockNumberAppended = nextElementsCount + firstBlockAppended;
-        mappers[targettedMapId].root = nextRoot;
+        mappers[targettedMapId].latestSize = nextSize;
+        mappers[targettedMapId].mmrSizeToRoot[nextSize] = nextRoot;
     }
 
-    function binsearchBlockNumberByTimestamp(uint256 searchedRemappingId, uint256 timestamp, BinsearchPathElement[] calldata searchPath) external view returns(uint256 blockNumber) {
-        uint256 remappedTreeSize = mappers[searchedRemappingId].latestBlockNumberAppended - mappers[searchedRemappingId].startsFromBlock;
-        bytes32 remappedRoot = mappers[searchedRemappingId].root;
+    function binsearchBlockNumberByTimestamp(uint256 searchedRemappingId, uint256 searchAtSize, uint256 timestamp, BinsearchPathElement[] calldata searchPath) external view returns(uint256 blockNumber) {
+        // Ensure that remapper exists at the given id and size
+        bytes32 rootAtGivenSize = mappers[searchedRemappingId].mmrSizeToRoot[searchAtSize];
+        require(rootAtGivenSize != bytes32(0), "ERR_EMPTY_MMR_ROOT");
+
+        uint256 remappedBlocksAmount = StatelessMmrHelpers.mmrSizeToLeafCount(searchAtSize);
+        bytes32 remappedRoot = rootAtGivenSize;
+
         require(remappedRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
-        uint256 currentElement = remappedTreeSize / 2;
+        uint256 currentElement = remappedBlocksAmount / 2;
 
         for(uint256 i = 0; i < searchPath.length; i++) {
             require(searchPath[i].leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
@@ -122,7 +139,7 @@ contract TimestampToBlockNumberMapper {
                 searchPath[i].leafValue,
                 searchPath[i].inclusionProof,
                 searchPath[i].peaks,
-                remappedTreeSize,
+                remappedBlocksAmount,
                 remappedRoot
             );
 

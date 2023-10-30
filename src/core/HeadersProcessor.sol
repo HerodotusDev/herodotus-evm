@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
-import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
 
 contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
-    using Counters for Counters.Counter;
 
     /// @notice This struct represents a Merkle Mountain Range accumulating provably valid block hash
     /// @dev each MMR is mapped to a unique ID also referred to as mmrId
@@ -58,7 +56,7 @@ contract HeadersProcessor {
     mapping(uint256 => bytes32) public receivedParentHashes;
 
     /// @dev counter for the number of MMRs created
-    Counters.Counter public mmrsCount;
+    uint256 public mmrsCount;
 
     /// @dev mapping of MMR ID to MMR info
     mapping (uint256 => MMRInfo) public mmrs;
@@ -87,7 +85,7 @@ contract HeadersProcessor {
     /// @param aggregatorId the ID of the L1 aggregator that is the origin of the message content
     function createBranchFromMessage(bytes32 mmrRoot, uint256 mmrSize, uint256 aggregatorId) external onlyMessagesInbox {
         // 1. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount.current();
+        uint256 currentMMRsCount = mmrsCount;
         uint256 newMMRId = currentMMRsCount + 1;
 
         // 2. Create a new MMR
@@ -95,7 +93,7 @@ contract HeadersProcessor {
         mmrs[newMMRId].mmrSizeToRoot[mmrSize] = mmrRoot;
 
         // 3. Update the MMRs count
-        mmrsCount.increment();
+        mmrsCount++;
 
         // 4. Emit the event
         emit BranchCreatedFromL1Message(newMMRId, mmrSize, mmrRoot, aggregatorId);
@@ -126,7 +124,7 @@ contract HeadersProcessor {
         // === Create a new MMR === //
 
         // 1. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount.current();
+        uint256 currentMMRsCount = mmrsCount;
         uint256 newMMRId = currentMMRsCount + 1;
 
         // 2. Create a new MMR
@@ -138,7 +136,7 @@ contract HeadersProcessor {
         mmrs[newMMRId].mmrSizeToRoot[newMMRSize] = newMMRRoot;
 
         // 4. Update the MMRs count
-        mmrsCount.increment();
+        mmrsCount++;
 
         // 5. Emit the event
         emit BranchCreatedFromElement(newMMRId, newMMRRoot, newMMRSize, fromMmrId, mmrSize);
@@ -155,7 +153,7 @@ contract HeadersProcessor {
         require(root != bytes32(0), "ERR_MMR_DOES_NOT_EXIST");
 
         // 3. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount.current();
+        uint256 currentMMRsCount = mmrsCount;
         uint256 newMMRId = currentMMRsCount + 1;
 
         // 4. Copy the existing MMR data to the new MMR
@@ -163,7 +161,7 @@ contract HeadersProcessor {
         mmrs[newMMRId].mmrSizeToRoot[mmrSize] = root;
 
         // 5. Update the MMRs count
-        mmrsCount.increment();
+        mmrsCount++;
 
         // 6. Emit the event
         emit BranchCreatedClone(newMMRId, mmrId, mmrSize);

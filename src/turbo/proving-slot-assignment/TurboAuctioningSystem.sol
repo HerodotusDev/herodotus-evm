@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -50,7 +50,7 @@ contract TurboAuctioningSystem is AccessControl {
         slotDurationSeconds = _slotDurationSeconds;
         biddingToken = _biddingToken;
         withdrawalDelaySeconds = _withdrawalDelaySeconds;
-        _setupRole(AUCTION_OPERATOR_ROLE, msg.sender);
+        // _setupRole(AUCTION_OPERATOR_ROLE, msg.sender);
     }
 
     function currentSlotId() public view returns(uint256) {

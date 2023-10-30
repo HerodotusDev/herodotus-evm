@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 // This library extracts data from Block header encoded in RLP format.
 // 0    RLP length              1+2

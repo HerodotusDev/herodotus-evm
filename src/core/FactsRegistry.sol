@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
@@ -120,7 +120,6 @@ contract FactsRegistry {
         require(isStorageProofValid, "ERR_INVALID_STORAGE_PROOF");
 
         bytes memory slotValueBytes = storageSlotTrieProof.slotValue;
-        bytes32 slotValue;
         assembly {
             slotValue := mload(add(slotValueBytes, 32))
         }
