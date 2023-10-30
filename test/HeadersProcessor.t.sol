@@ -12,10 +12,8 @@ import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
 import "forge-std/console.sol";
 
-
 contract HeadersProcessor_Test is Test {
     using Strings for uint256;
-
 
     uint256 constant DEFAULT_MMR_ID = 0;
 
@@ -103,6 +101,11 @@ contract HeadersProcessor_Test is Test {
         uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
         uint256 newLeafCount = StatelessMmrHelpers.mmrSizeToLeafCount(newMMRSize);
         assertEq(newLeafCount, 4);
+
+        bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
+        assertFalse(mmrRoot == bytes32(0));
+
+        console.logBytes32(mmrRoot);
     }
 
     function _receiveParentHashOfBlockWithNumber(uint256 blockNumber) internal {
