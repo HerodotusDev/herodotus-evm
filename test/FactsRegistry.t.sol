@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 
 import {EOA} from "./helpers/EOA.sol";
-import {WETHMock} from "./helpers/WETHMock.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
 

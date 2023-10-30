@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { keccak256 } = require("@ethersproject/keccak256");
+const { utils } = require("ethers");
 const axios = require("axios");
 const RLP = require("rlp");
 
@@ -12,8 +12,11 @@ async function main() {
   const blockNumber = Number(arg);
 
   const useMainnet = process.argv[3] === "mainnet";
-  if (useMainnet && !ALCHEMY_URL_MAINNET) throw new Error(`ALCHEMY_URL_MAINNET has not been provided`);
-  const providerUrl = useMainnet ? ALCHEMY_URL_MAINNET : process.env.ALCHEMY_URL;
+  if (useMainnet && !ALCHEMY_URL_MAINNET)
+    throw new Error(`ALCHEMY_URL_MAINNET has not been provided`);
+  const providerUrl = useMainnet
+    ? ALCHEMY_URL_MAINNET
+    : process.env.ALCHEMY_URL;
 
   let header;
   if (!OFFLINE || OFFLINE === "false") {
@@ -24,7 +27,9 @@ async function main() {
       id: 0,
     };
 
-    const rpcResponse = await axios.post(providerUrl, JSON.stringify(rpcBody), { headers: { "Content-Type": "application/json" } });
+    const rpcResponse = await axios.post(providerUrl, JSON.stringify(rpcBody), {
+      headers: { "Content-Type": "application/json" },
+    });
     header = rpcResponse.data.result;
   } else {
     const cached = require("./cached_headers.json");
@@ -60,11 +65,15 @@ async function main() {
 
   const isMalicious = process.argv[3] === "malicious";
   if (isMalicious) {
-    data[3] = "0x4f8a2f80c6496e18bd911ba09b6cbb01e78b7637845c69253f2eec2875a67278"; // Fake state root
+    data[3] =
+      "0x4f8a2f80c6496e18bd911ba09b6cbb01e78b7637845c69253f2eec2875a67278"; // Fake state root
   }
   const headerRlp = "0x" + RLP.encode(data).toString("hex");
-  const actualHash = keccak256(headerRlp);
-  if (!isMalicious && actualHash !== header.hash) throw new Error(`Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`);
+  const actualHash = utils.keccak256(headerRlp);
+  if (!isMalicious && actualHash !== header.hash)
+    throw new Error(
+      `Mismatching blockhashes expected: ${header.hash}, actual: ${actualHash}`
+    );
   console.log(headerRlp);
 }
 

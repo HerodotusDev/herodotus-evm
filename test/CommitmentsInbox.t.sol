@@ -7,7 +7,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 
 import {EOA} from "./helpers/EOA.sol";
-import {WETHMock} from "./helpers/WETHMock.sol";
 
 import {MessagesInbox} from "../src/core/MessagesInbox.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
