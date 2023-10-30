@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
@@ -9,222 +10,121 @@ import {EOA} from "./helpers/EOA.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
-uint256 constant DEFAULT_TREE_ID = 0;
+import "forge-std/console.sol";
 
-// contract HeadersProcessor_Processing_Test is Test {
-//     using EVMHeaderRLP for bytes;
-//     using Strings for uint256;
 
-//     EOA private commitmentsInbox;
-//     HeadersProcessor private headersProcessor;
+contract HeadersProcessor_Test is Test {
+    using Strings for uint256;
 
-//     uint256 initialParentHashSentForBlock = 7583803;
 
-//     // Emitted event after each successful `append` operation
-//     event AccumulatorUpdates(bytes32 keccakHash, uint256 processedBlockNumber, uint256 updateId, uint256 treeId, uint256 blocksAmount);
+    uint256 constant DEFAULT_MMR_ID = 0;
 
-//     constructor() {
-//         string[] memory inputs = new string[](4);
-//         inputs[0] = "node";
-//         inputs[1] = "./helpers/fetch_header_prop.js";
-//         inputs[2] = initialParentHashSentForBlock.toString();
-//         inputs[3] = "parentHash";
+    EOA private commitmentsInbox;
+    HeadersProcessor private headersProcessor;
 
-//         bytes memory parentHashBytes = vm.ffi(inputs);
-//         bytes32 parentHash = bytes32(parentHashBytes);
+    constructor() {
+        commitmentsInbox = new EOA();
+        headersProcessor = new HeadersProcessor(address(commitmentsInbox));
+    }
 
-//         commitmentsInbox = new EOA();
-//         headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)), IValidityProofVerifier(address(0)));
-//         vm.prank(address(commitmentsInbox));
-//         headersProcessor.receiveParentHash(initialParentHashSentForBlock, parentHash);
-//     }
+    function test_receiveParentHash() public {
+        bytes32 parentHash = 0x1234567890123456789012345678901234567890123456789012345678901234;
 
-//     function test_processBlockFromMessage_fromVerifiedHash() public {
-//         uint256 blockNumber = initialParentHashSentForBlock - 1;
+        // Pretend to be the MessagesInbox contract
+        vm.prank(address(commitmentsInbox));
+        headersProcessor.receiveParentHash(1, parentHash);
 
-//         string[] memory rlp_inputs = new string[](3);
-//         rlp_inputs[0] = "node";
-//         rlp_inputs[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs[2] = blockNumber.toString();
-//         bytes memory headerRlp = vm.ffi(rlp_inputs);
+        bytes32 actualParentHash = headersProcessor.receivedParentHashes(1);
+        assertEq(actualParentHash, parentHash);
+    }
 
-//         vm.expectEmit(true, true, true, true);
-//         emit AccumulatorUpdates(keccak256(headerRlp), blockNumber, 0, DEFAULT_TREE_ID, 1);
-//         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp, new bytes32[](0));
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
-//     }
+    function test_processBlocksBatchNotAccumulated() public {
+        _receiveParentHashOfBlockWithNumber(1000);
 
-//     function test_processBlockFromMessage() public {
-//         uint256 blockNumber = initialParentHashSentForBlock - 1;
-//         string[] memory rlp_inputs_1 = new string[](3);
-//         rlp_inputs_1[0] = "node";
-//         rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_1[2] = blockNumber.toString();
-//         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
+        bytes[] memory headersBatch = new bytes[](1);
+        headersBatch[0] = _getRlpBlockHeader(999);
 
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 0);
+        bytes32[] memory emptyPeaks = new bytes32[](0);
+        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(999, emptyPeaks), headersBatch);
 
-//         vm.expectEmit(true, true, true, true);
-//         emit AccumulatorUpdates(keccak256(headerRlp_1), blockNumber, 0, DEFAULT_TREE_ID, 1);
-//         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
+        uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
+        assertEq(newMMRSize, 1);
 
-//         bytes32[] memory nextPeaks = new bytes32[](1);
-//         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
+        bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
+        assertFalse(mmrRoot == bytes32(0));
 
-//         uint256 nextBlock = blockNumber - 1;
-//         string[] memory rlp_inputs_2 = new string[](3);
-//         rlp_inputs_2[0] = "node";
-//         rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_2[2] = nextBlock.toString();
-//         bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
+        // TODO: Check that the MMR root is correct(expectedRoot)
+    }
 
-//         bytes32 parentHash = headerRlp_1.getParentHash();
-//         vm.prank(address(commitmentsInbox));
-//         headersProcessor.receiveParentHash(initialParentHashSentForBlock - 1, parentHash);
+    function test_processBlocksBatchAccumulated() public {
+        // Receive initial parent hash
+        _receiveParentHashOfBlockWithNumber(7583803);
 
-//         vm.expectEmit(true, true, true, true);
-//         emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 1, DEFAULT_TREE_ID, 1);
-//         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, nextBlock, headerRlp_2, nextPeaks);
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 3);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 2);
-//     }
+        bytes[] memory headersBatch = new bytes[](3);
+        headersBatch[0] = _getRlpBlockHeader(7583802);
+        headersBatch[1] = _getRlpBlockHeader(7583801);
+        headersBatch[2] = _getRlpBlockHeader(7583800);
 
-//     function test_processTillBlock_setup() public returns (bytes memory) {
-//         uint256 blockNumber = initialParentHashSentForBlock - 1;
-//         string[] memory rlp_inputs_1 = new string[](3);
-//         rlp_inputs_1[0] = "node";
-//         rlp_inputs_1[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_1[2] = blockNumber.toString();
-//         bytes memory headerRlp_1 = vm.ffi(rlp_inputs_1);
+        // Grow the tree starting from the initial parent hash
+        bytes32[] memory emptyPeaks = new bytes32[](0);
+        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, emptyPeaks), headersBatch);
 
-//         vm.expectEmit(true, true, true, true);
-//         emit AccumulatorUpdates(keccak256(headerRlp_1), blockNumber, 0, DEFAULT_TREE_ID, 1);
-//         headersProcessor.processBlockFromMessage(DEFAULT_TREE_ID, blockNumber, headerRlp_1, new bytes32[](0));
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 1);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
-//         return headerRlp_1;
-//     }
+        // Encode the FFI inputs to get the peaks and inclusion proof
+        bytes32[] memory hashesInTheMmr = new bytes32[](3);
+        hashesInTheMmr[0] = keccak256(headersBatch[0]);
+        hashesInTheMmr[1] = keccak256(headersBatch[1]);
+        hashesInTheMmr[2] = keccak256(headersBatch[2]);
 
-//     function test_processTillBlock() public {
-//         uint256 blockNumber = initialParentHashSentForBlock - 1;
-//         bytes memory headerRlp_1 = test_processTillBlock_setup();
+        uint256 provenLeafId = 1;
 
-//         uint256 nextBlock = blockNumber - 1;
-//         string[] memory rlp_inputs_2 = new string[](3);
-//         rlp_inputs_2[0] = "node";
-//         rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_2[2] = nextBlock.toString();
-//         bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
+        string[] memory inputs = new string[](3 + hashesInTheMmr.length);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/mmrs/get_peaks_and_inclusion_proof.js";
+        inputs[2] = provenLeafId.toString(); // Generate proof for leaf with id
+        for (uint256 i = 0; i < hashesInTheMmr.length; i++) {
+            inputs[3 + i] = uint256(hashesInTheMmr[i]).toHexString();
+        }
 
-//         uint256 nextBlock2 = blockNumber - 2;
-//         string[] memory rlp_inputs_3 = new string[](3);
-//         rlp_inputs_3[0] = "node";
-//         rlp_inputs_3[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_3[2] = nextBlock2.toString();
-//         bytes memory headerRlp_3 = vm.ffi(rlp_inputs_3);
+        bytes memory abiEncoded = vm.ffi(inputs);
+        (bytes32[] memory peaks, bytes32[] memory inclusionProof) = abi.decode(abiEncoded, (bytes32[], bytes32[]));
 
-//         uint256 nextBlock3 = blockNumber - 3;
-//         string[] memory rlp_inputs_4 = new string[](3);
-//         rlp_inputs_4[0] = "node";
-//         rlp_inputs_4[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_4[2] = nextBlock3.toString();
-//         bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
+        // Grow the MMR starting from the blockhash already present in the MMR
+        bytes memory ctx = abi.encode(
+            provenLeafId,
+            inclusionProof,
+            peaks,
+            headersBatch[0]
+        );
 
-//         uint256 leafIndex = 1;
-//         bytes32 leafValue = keccak256(headerRlp_1);
-//         bytes32[] memory proof = new bytes32[](0);
-//         bytes[] memory headersToAppend = new bytes[](3);
-//         headersToAppend[0] = headerRlp_2;
-//         headersToAppend[1] = headerRlp_3;
-//         headersToAppend[2] = headerRlp_4;
+        bytes[] memory nextHeadersBatch = new bytes[](1);
+        nextHeadersBatch[0] = _getRlpBlockHeader(7583801);
+        headersProcessor.processBlocksBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
 
-//         bytes32[] memory nextPeaks = new bytes32[](1);
-//         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
-//         vm.expectEmit(true, true, true, true);
-//         emit AccumulatorUpdates(keccak256(headerRlp_2), nextBlock, 1, DEFAULT_TREE_ID, 3);
-//         headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend);
-//         assertEq(headersProcessor.mmrsElementsCount(DEFAULT_TREE_ID), 7);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 2);
-//     }
+        uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
+        uint256 newLeafCount = StatelessMmrHelpers.mmrSizeToLeafCount(newMMRSize);
+        assertEq(newLeafCount, 4);
+    }
 
-//     function test_processBlock_expect_revert() public {
-//         uint256 blockNumber = initialParentHashSentForBlock - 1;
-//         bytes memory headerRlp_1 = test_processTillBlock_setup();
+    function _receiveParentHashOfBlockWithNumber(uint256 blockNumber) internal {
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_header_prop.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = "parentHash";
 
-//         uint256 nextBlock = blockNumber - 1;
-//         string[] memory rlp_inputs_2 = new string[](3);
-//         rlp_inputs_2[0] = "node";
-//         rlp_inputs_2[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_2[2] = nextBlock.toString();
-//         bytes memory headerRlp_2 = vm.ffi(rlp_inputs_2);
+        bytes memory parentHashBytes = vm.ffi(inputs);
+        bytes32 parentHash = bytes32(parentHashBytes);
 
-//         uint256 nextBlock2 = blockNumber - 2;
-//         string[] memory rlp_inputs_3 = new string[](3);
-//         rlp_inputs_3[0] = "node";
-//         rlp_inputs_3[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_3[2] = nextBlock2.toString();
-//         bytes memory headerRlp_3 = vm.ffi(rlp_inputs_3);
+        vm.prank(address(commitmentsInbox));
+        headersProcessor.receiveParentHash(blockNumber, parentHash);
+    }
 
-//         uint256 nextBlock3 = blockNumber - 3;
-//         string[] memory rlp_inputs_4 = new string[](3);
-//         rlp_inputs_4[0] = "node";
-//         rlp_inputs_4[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_4[2] = nextBlock3.toString();
-//         bytes memory headerRlp_4 = vm.ffi(rlp_inputs_4);
-
-//         uint256 leafIndex = 1;
-//         bytes32 leafValue = keccak256(headerRlp_1);
-//         bytes32[] memory proof = new bytes32[](0);
-//         bytes[] memory headersToAppend = new bytes[](3);
-//         headersToAppend[0] = headerRlp_2;
-//         headersToAppend[1] = headerRlp_3;
-//         headersToAppend[2] = headerRlp_4;
-
-//         // Test malicious RLP
-//         string[] memory rlp_inputs_5 = new string[](4);
-//         rlp_inputs_5[0] = "node";
-//         rlp_inputs_5[1] = "./helpers/fetch_header_rlp.js";
-//         rlp_inputs_5[2] = nextBlock3.toString();
-//         rlp_inputs_5[3] = "malicious";
-//         bytes memory headerRlp_4_malicious = vm.ffi(rlp_inputs_5);
-//         bytes[] memory headersToAppend2 = new bytes[](3);
-//         headersToAppend2[0] = headerRlp_2;
-//         headersToAppend2[1] = headerRlp_3;
-//         headersToAppend2[2] = headerRlp_4_malicious;
-//         bytes32[] memory nextPeaks = new bytes32[](1);
-//         nextPeaks[0] = keccak256(abi.encode(1, keccak256(headerRlp_1)));
-
-//         vm.expectRevert("ERR_INVALID_CHAIN_ELEMENT");
-//         headersProcessor.processTillBlock(DEFAULT_TREE_ID, leafIndex, leafValue, proof, nextPeaks, headerRlp_1, headersToAppend2);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 1);
-//     }
-// }
-
-// contract HeadersProcessor_ReceivingParentHashes_Test is Test {
-//     EOA private commitmentsInbox;
-//     HeadersProcessor private headersProcessor;
-
-//     constructor() {
-//         commitmentsInbox = new EOA();
-//         headersProcessor = new HeadersProcessor(ICommitmentsInbox(address(commitmentsInbox)), IValidityProofVerifier(address(0)));
-//     }
-
-//     function test_receiveParentHash() public {
-//         uint256 blockNumber = 1000;
-//         bytes32 parentHash = "parent";
-//         vm.prank(address(commitmentsInbox));
-//         headersProcessor.receiveParentHash(blockNumber, parentHash);
-//         assertEq(headersProcessor.receivedParentHashes(blockNumber), parentHash);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 0);
-//     }
-
-//     function test_fail_receiveParentHash_notCommitmentsInbox() public {
-//         uint256 blockNumber = 1000;
-//         bytes32 parentHash = "parent";
-//         vm.expectRevert("ERR_ONLY_INBOX");
-//         headersProcessor.receiveParentHash(blockNumber, parentHash);
-//         assertEq(headersProcessor.mmrsLatestUpdateId(DEFAULT_TREE_ID), 0);
-//     }
-// }
+    function _getRlpBlockHeader(uint256 blockNumber) internal returns(bytes memory) {
+        string[] memory inputs = new string[](3);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/fetch_header_rlp.js";
+        inputs[2] = blockNumber.toString();
+        bytes memory headerRlp = vm.ffi(inputs);
+        return headerRlp;
+    }
+}

@@ -183,7 +183,6 @@ contract HeadersProcessor {
         if (isReferenceHeaderAccumulated) {
             (firstBlockInBatch, newMMRSize, newMMRRoot) = _processBlocksBatchAccumulated(mmrId, ctx, headersSerialized);
         } else {
-            require(mmrs[mmrId].latestSize > 0, "ERR_MMR_EMPTY");
             (firstBlockInBatch, newMMRSize, newMMRRoot) = _processBlocksBatchNotAccumulated(mmrId, ctx, headersSerialized);
         }
         emit ProcessedBatch(firstBlockInBatch, firstBlockInBatch - headersSerialized.length, newMMRRoot, newMMRSize, mmrId);
@@ -198,7 +197,7 @@ contract HeadersProcessor {
         require(expectedHash != bytes32(0), "ERR_NO_REFERENCE_HASH");
 
         bytes32[] memory headersHashes = new bytes32[](headersSerialized.length);
-        for (uint256 i = 1; i < headersSerialized.length; ++i) {
+        for (uint256 i = 0; i < headersSerialized.length; i++) {
             require(_isHeaderValid(expectedHash, headersSerialized[i]), "ERR_INVALID_CHAIN_ELEMENT");
             headersHashes[i] = expectedHash;
             expectedHash = headersSerialized[i].getParentHash();
@@ -210,13 +209,12 @@ contract HeadersProcessor {
 
     function _processBlocksBatchAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
         (   uint256 referenceProofLeafIndex,
-            bytes32 referenceProofLeafValue,
             bytes32[] memory referenceProof,
             bytes32[] memory mmrPeaks,
             bytes memory referenceHeaderSerialized
-        ) = abi.decode(ctx, (uint256, bytes32, bytes32[], bytes32[], bytes));
+        ) = abi.decode(ctx, (uint256, bytes32[], bytes32[], bytes));
 
-        _validateParentBlockAndProofIntegrity(treeId, referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, referenceHeaderSerialized);
+        _validateParentBlockAndProofIntegrity(treeId, referenceProofLeafIndex, referenceProof, mmrPeaks, referenceHeaderSerialized);
 
         bytes32[] memory headersHashes = new bytes32[](headersSerialized.length);
         for (uint256 i = 1; i < headersSerialized.length; ++i) {
@@ -252,18 +250,14 @@ contract HeadersProcessor {
     function _validateParentBlockAndProofIntegrity(
         uint256 mmrId,
         uint256 referenceProofLeafIndex,
-        bytes32 referenceProofLeafValue,
         bytes32[] memory referenceProof,
         bytes32[] memory mmrPeaks,
         bytes memory referenceHeaderSerialized
     ) internal view {
-        // Assert the reference block is the one we expect
-        require(keccak256(referenceHeaderSerialized) == referenceProofLeafValue, "ERR_INVALID_PROOF_LEAF");
-
         // Verify the reference block is in the MMR and the proof is valid
         uint256 mmrSize = mmrs[mmrId].latestSize;
         bytes32 root = mmrs[mmrId].mmrSizeToRoot[mmrSize];
-        StatelessMmr.verifyProof(referenceProofLeafIndex, referenceProofLeafValue, referenceProof, mmrPeaks, mmrSize, root);
+        StatelessMmr.verifyProof(referenceProofLeafIndex, keccak256(referenceHeaderSerialized), referenceProof, mmrPeaks, mmrSize, root);
     }
 
     function getMMRRoot(uint256 mmrId, uint256 mmrSize) external view returns (bytes32) {

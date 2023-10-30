@@ -13,7 +13,7 @@ async function main() {
   const prop = propArg;
 
   let header;
-  if (!OFFLINE) {
+  if (!OFFLINE || OFFLINE === "false") {
     const rpcBody = {
       jsonrpc: "2.0",
       method: "eth_getBlockByNumber",
@@ -25,7 +25,7 @@ async function main() {
   } else {
     const cached = require("./cached_headers.json");
     header = cached["GOERLI"][blockNumberArg];
-    if(!header) throw new Error(`Block ${blockNumberArg} is not cached`)
+    if (!header) throw new Error(`Block ${blockNumberArg} is not cached`);
   }
 
   if (!header[prop]) throw new Error("Invalid property name");
