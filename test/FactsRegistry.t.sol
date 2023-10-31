@@ -7,6 +7,8 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
 import {Types} from "../src/lib/Types.sol";
 
+import "forge-std/console.sol";
+
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
@@ -39,6 +41,8 @@ contract FactsRegistry_Test is Test {
         
         bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
         bytes memory accountProof = _getAccountProof(proveForBlock, accountToProve);
+
+        console.logBytes(accountProof);
 
         // TODO something silly is happening here
         Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({

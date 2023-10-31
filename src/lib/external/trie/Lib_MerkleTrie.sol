@@ -6,6 +6,9 @@ import { Lib_BytesUtils } from "../utils/Lib_BytesUtils.sol";
 import { Lib_RLPReader } from "../rlp/Lib_RLPReader.sol";
 import { Lib_RLPWriter } from "../rlp/Lib_RLPWriter.sol";
 
+
+import "forge-std/console.sol";
+
 /**
  * @title Lib_MerkleTrie
  */
@@ -77,7 +80,7 @@ library Lib_MerkleTrie {
         bytes32 _root
     )
         internal
-        pure
+        view
         returns (
             bool _verified
         )
@@ -108,7 +111,7 @@ library Lib_MerkleTrie {
         bytes32 _root
     )
         internal
-        pure
+        view
         returns (
             bool _verified
         )
@@ -138,7 +141,7 @@ library Lib_MerkleTrie {
         bytes32 _root
     )
         internal
-        pure
+        view
         returns (
             bytes32 _updatedRoot
         )
@@ -169,7 +172,7 @@ library Lib_MerkleTrie {
         bytes32 _root
     )
         internal
-        pure
+        view
         returns (
             bool _exists,
             bytes memory _value
@@ -204,7 +207,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         internal
-        pure
+        view
         returns (
             bytes32 _updatedRoot
         )
@@ -235,7 +238,7 @@ library Lib_MerkleTrie {
         bytes32 _root
     )
         private
-        pure
+        view
         returns (
             uint256 _pathLength,
             bytes memory _keyRemainder,
@@ -358,7 +361,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         private
-        pure
+        view
         returns (
             TrieNode[] memory _newPath
         )
@@ -484,7 +487,7 @@ library Lib_MerkleTrie {
         bytes memory _key
     )
         private
-        pure
+        view
         returns (
             bytes32 _updatedRoot
         )
@@ -547,7 +550,7 @@ library Lib_MerkleTrie {
         bytes memory _proof
     )
         private
-        pure
+        view
         returns (
             TrieNode[] memory _parsed
         )
@@ -557,6 +560,8 @@ library Lib_MerkleTrie {
 
         for (uint256 i = 0; i < nodes.length; i++) {
             bytes memory encoded = Lib_RLPReader.readBytes(nodes[i]);
+            console.logString("\n");
+            console.logBytes(encoded);
             proof[i] = TrieNode({
                 encoded: encoded,
                 decoded: Lib_RLPReader.readList(encoded)
@@ -577,7 +582,7 @@ library Lib_MerkleTrie {
         Lib_RLPReader.RLPItem memory _node
     )
         private
-        pure
+        view
         returns (
             bytes32 _nodeID
         )
@@ -604,7 +609,7 @@ library Lib_MerkleTrie {
         TrieNode memory _node
     )
         private
-        pure
+        view
         returns (
             bytes memory _path
         )
@@ -622,7 +627,7 @@ library Lib_MerkleTrie {
         TrieNode memory _node
     )
         private
-        pure
+        view
         returns (
             bytes memory _key
         )
@@ -639,7 +644,7 @@ library Lib_MerkleTrie {
         TrieNode memory _node
     )
         private
-        pure
+        view
         returns (
             bytes memory _value
         )
@@ -657,7 +662,7 @@ library Lib_MerkleTrie {
         bytes memory _encoded
     )
         private
-        pure
+        view
         returns (
             bytes memory _hash
         )
@@ -678,7 +683,7 @@ library Lib_MerkleTrie {
         TrieNode memory _node
     )
         private
-        pure
+        view
         returns (
             NodeType _type
         )
@@ -711,7 +716,7 @@ library Lib_MerkleTrie {
         bytes memory _b
     )
         private
-        pure
+        view
         returns (
             uint256 _shared
         )
@@ -732,7 +737,7 @@ library Lib_MerkleTrie {
         bytes[] memory _raw
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _node
         )
@@ -754,7 +759,7 @@ library Lib_MerkleTrie {
         Lib_RLPReader.RLPItem[] memory _items
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _node
         )
@@ -777,7 +782,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _node
         )
@@ -803,7 +808,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _node
         )
@@ -821,7 +826,7 @@ library Lib_MerkleTrie {
      */
     function _makeEmptyBranchNode()
         private
-        pure
+        view
         returns (
             TrieNode memory _node
         )
@@ -844,7 +849,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _updatedNode
         )
@@ -867,7 +872,7 @@ library Lib_MerkleTrie {
         bytes memory _value
     )
         private
-        pure
+        view
         returns (
             TrieNode memory _updatedNode
         )
@@ -888,7 +893,7 @@ library Lib_MerkleTrie {
         bool _isLeaf
     )
         private
-        pure
+        view
         returns (
             bytes memory _prefixedKey
         )
@@ -909,7 +914,7 @@ library Lib_MerkleTrie {
         bytes memory _path
     )
         private
-        pure
+        view
         returns (
             bytes memory _unprefixedKey
         )
@@ -938,7 +943,7 @@ library Lib_MerkleTrie {
         uint256 _bLength
     )
         private
-        pure
+        view
         returns (
             TrieNode[] memory _joined
         )

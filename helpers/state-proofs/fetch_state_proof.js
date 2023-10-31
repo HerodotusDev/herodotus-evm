@@ -60,7 +60,8 @@ async function main() {
 
   const encoder = new utils.AbiCoder();
 
-  const encodedProof = encoder.encode(["bytes[]"], [trieProof]);
+  const trieProofRlp = "0x" + RLP.encode(trieProof).toString("hex");
+  const encodedProof = encoder.encode(["bytes"], [trieProofRlp]);
   // const result = encodeProof(trieProof);
   console.log(encodedProof);
 }
