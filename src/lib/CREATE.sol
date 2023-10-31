@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.9;
+pragma solidity 0.8.20;
 
 library CREATE {
     function computeFutureAddress(address _origin, uint256 _nonce) internal pure returns (address) {

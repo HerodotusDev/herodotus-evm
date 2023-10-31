@@ -14,9 +14,9 @@
     "get-env": "node helpers/get_env_from_latest_run.js"
   },
   "dependencies": {
-    "@herodotus_dev/mmr-core": "^1.1.17",
-    "@herodotus_dev/mmr-hashes": "^1.1.19",
-    "@herodotus_dev/mmr-memory": "^1.1.17",
+    "@accumulators/hashers": "^4.2.3",
+    "@accumulators/memory": "^4.2.3",
+    "@accumulators/merkle-mountain-range": "^4.2.3",
     "axios": "^1.4.0",
     "ethers": "^5.7.2",
     "rlp": "2.2.7"

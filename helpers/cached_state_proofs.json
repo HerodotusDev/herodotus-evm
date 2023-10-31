@@ -17,10 +17,16 @@
           "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
           "nonce": "0x0",
           "storageHash": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-          "storageProof": [{ "key": "0x54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f8", "value": "0x0", "proof": [] }]
+          "storageProof": [
+            {
+              "key": "0x54cdd369e4e8a8515e52ca72ec816c2101831ad1f18bf44102ed171459c9b4f8",
+              "value": "0x0",
+              "proof": []
+            }
+          ]
         }
       },
-      "0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6": {
+      "0x7b2f05ce9ae365c3dbf30657e2dc6449989e83d6": {
         "0x0000000000000000000000000000000000000000000000000000000000000033": {
           "address": "0x7b2f05ce9ae365c3dbf30657e2dc6449989e83d6",
           "accountProof": [

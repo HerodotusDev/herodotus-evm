@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.20;
 
 // This library extracts data from Block header encoded in RLP format.
-// It is not a complete implementation, but optimized for specific cases - thus many hardcoded values.
-// Here's the current RLP structure and the values we're looking for:
-//
-// idx  Element                 element length with 1 byte storing its length
-// ==========================================================================
-// Static elements (always same size):
-//
 // 0    RLP length              1+2
 // 1    parentHash              1+32
 // 2    ommersHash              1+32
@@ -18,13 +11,7 @@ pragma solidity ^0.8.9;
 // 6    receiptsRoot            1+32
 //      logsBloom length        1+2
 // 7    logsBloom               256
-//                              =========
 //  Total static elements size: 448 bytes
-//
-// Dynamic elements (need to read length) start at position 448
-// and each one is preceeded with 1 byte length (if element is >= 128)
-// or if element is < 128 - then length byte is skipped and it is just the 1-byte element:
-//
 // 8	difficulty  - starts at pos 448
 // 9	number      - blockNumber
 // 10	gasLimit
@@ -33,13 +20,12 @@ pragma solidity ^0.8.9;
 // 13	extraData
 // 14	mixHash
 // 15	nonce
+// 16	baseFee
+// 17   withdrawalsRoot
 
-// SAFEMATH DISCLAIMER:
-// We and don't use SafeMath here intentionally, because input values are bytes in a byte-array, thus limited to 255
+
 library EVMHeaderRLP {
     function nextElementJump(uint8 prefix) public pure returns (uint8) {
-        // RLP has much more options for element lenghts
-        // But we are safe between 56 bytes and 2MB
         if (prefix <= 128) {
             return 1;
         } else if (prefix <= 183) {
@@ -84,6 +70,26 @@ library EVMHeaderRLP {
         //4th element - gas used
         pos += nextElementJump(uint8(rlp[pos]));
         //timestamp - jackpot!
+        pos += nextElementJump(uint8(rlp[pos]));
+
+        return pos;
+    }
+
+    function getMixHashPositionNoLoop(bytes memory rlp) public pure returns (uint256) {
+        uint256 pos;
+        //jumpting straight to the 1st dynamic element at pos 448 - difficulty
+        pos = 448;
+        //2nd element - block number
+        pos += nextElementJump(uint8(rlp[pos]));
+        //3rd element - gas limit
+        pos += nextElementJump(uint8(rlp[pos]));
+        //4th element - gas used
+        pos += nextElementJump(uint8(rlp[pos]));
+        // 5th element - timestamp
+        pos += nextElementJump(uint8(rlp[pos]));
+        // 6th element - extradata
+        pos += nextElementJump(uint8(rlp[pos]));
+        // 7th element - mixhash
         pos += nextElementJump(uint8(rlp[pos]));
 
         return pos;
@@ -142,47 +148,51 @@ library EVMHeaderRLP {
         return element;
     }
 
-    function getBlockNumber(bytes calldata rlp) public pure returns (uint256 bn) {
+    function getBlockNumber(bytes calldata rlp) public pure returns (uint256) {
         return extractFromRLP(rlp, getBlockNumberPositionNoLoop(rlp));
     }
 
-    function getTimestamp(bytes calldata rlp) external pure returns (uint256 ts) {
+    function getTimestamp(bytes calldata rlp) public pure returns (uint256) {
         return extractFromRLP(rlp, getTimestampPositionNoLoop(rlp));
     }
 
-    function getDifficulty(bytes calldata rlp) external pure returns (uint256 diff) {
+    function getDifficulty(bytes calldata rlp) public pure returns (uint256) {
         return extractFromRLP(rlp, 448);
     }
 
-    function getGasLimit(bytes calldata rlp) external pure returns (uint256 gasLimit) {
+    function getGasLimit(bytes calldata rlp) public pure returns (uint256) {
         return extractFromRLP(rlp, getGasLimitPositionNoLoop(rlp));
     }
 
-    function getBaseFee(bytes calldata rlp) external pure returns (uint256 baseFee) {
+    function getBaseFee(bytes calldata rlp) public pure returns (uint256) {
         return extractFromRLP(rlp, getBaseFeePositionNoLoop(rlp));
     }
 
-    function getParentHash(bytes calldata rlp) external pure returns (bytes32) {
+    function getParentHash(bytes calldata rlp) public pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 3));
     }
 
-    function getUnclesHash(bytes calldata rlp) external pure returns (bytes32) {
+    function getUnclesHash(bytes calldata rlp) public pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 36));
     }
 
-    function getBeneficiary(bytes calldata rlp) external pure returns (address) {
+    function getBeneficiary(bytes calldata rlp) public pure returns (address) {
         return address(uint160(extractFromRLP(rlp, 70)));
     }
 
-    function getStateRoot(bytes calldata rlp) external pure returns (bytes32) {
+    function getStateRoot(bytes calldata rlp) public pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 90));
     }
 
-    function getTransactionsRoot(bytes calldata rlp) external pure returns (bytes32) {
+    function getTransactionsRoot(bytes calldata rlp) public pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 123));
     }
 
-    function getReceiptsRoot(bytes calldata rlp) external pure returns (bytes32) {
+    function getReceiptsRoot(bytes calldata rlp) public pure returns (bytes32) {
         return bytes32(extractFromRLP(rlp, 156));
+    }
+
+    function getMixHash(bytes calldata rlp) public pure returns (bytes32) {
+        return bytes32(extractFromRLP(rlp, getMixHashPositionNoLoop(rlp)));
     }
 }
