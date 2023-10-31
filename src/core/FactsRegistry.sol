@@ -98,12 +98,11 @@ contract FactsRegistry {
         bytes calldata accountTrieProof
     ) public view returns(uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) {
         // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
-        // _verifyAccumulatedHeaderProof(headerProof);
+        _verifyAccumulatedHeaderProof(headerProof);
 
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
 
-        // TODO in case the account is not present in the state trie, the proof will fail
         (bool doesAccountExist, bytes memory accountRLP) = SecureMerkleTrie.get(
             abi.encodePacked(account),
             accountTrieProof,

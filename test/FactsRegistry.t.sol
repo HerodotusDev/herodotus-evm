@@ -12,7 +12,7 @@ import "forge-std/console.sol";
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
-    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x2e60617b4d3dfe11836dff47277aec8eb997a319003d4ba84b9c974b3bdac20b;
+    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
     uint256 constant SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 7;
 
     function getMMRRoot(uint256 mmrId, uint256 mmrSize) external view returns (bytes32) {
