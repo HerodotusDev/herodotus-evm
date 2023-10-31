@@ -103,30 +103,14 @@ contract FactsRegistry {
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
 
-        console.logBytes32(
-            stateRoot
-        );
-
         // TODO in case the account is not present in the state trie, the proof will fail
         (bool doesAccountExist, bytes memory accountRLP) = SecureMerkleTrie.get(
             abi.encodePacked(account),
             accountTrieProof,
             stateRoot
         );
-
-        console.log(
-            doesAccountExist
-        );
-        
-
-        RLPReader.RLPItem[] memory accountFields = accountRLP.toRLPItem().readList();
-
-        console.logBytes(
-            accountRLP.toRLPItem().readRawBytes()
-        );
-
         // Decode the account fields
-        (nonce, accountBalance, codeHash, storageRoot) = _decodeAccountFields(accountFields);
+        (nonce, accountBalance, codeHash, storageRoot) = _decodeAccountFields(doesAccountExist, accountRLP);
     }
 
     function verifyStorage(
@@ -171,7 +155,12 @@ contract FactsRegistry {
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
-    function _decodeAccountFields(RLPReader.RLPItem[] memory accountFields) internal view returns(uint256, uint256, bytes32, bytes32) {
+    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP) internal view returns(uint256, uint256, bytes32, bytes32) {
+        if (!doesAccountExist) {
+            return (0, 0, EMPTY_CODE_HASH, EMPTY_TRIE_ROOT_HASH); // TODO ensure this order is correct
+        }
+
+        RLPReader.RLPItem[] memory accountFields = accountRLP.toRLPItem().readList();
         bytes memory nonceBytes = accountFields[ACCOUNT_NONCE_INDEX].readBytes(); // This is correct
         uint256 nonce;
         // TODO this needs to be fixed, it's not working too much data is loaded from memory into the variable

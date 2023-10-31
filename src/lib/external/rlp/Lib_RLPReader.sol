@@ -465,90 +465,92 @@ library Lib_RLPReader {
             RLPItemType
         )
     {
-        require(
-            _in.length > 0,
-            "RLP item cannot be null."
-        );
-
-        uint256 ptr = _in.ptr;
-        uint256 prefix;
-        assembly {
-            prefix := byte(0, mload(ptr))
-        }
-
-        if (prefix <= 0x7f) {
-            // Single byte.
-
-            return (0, 1, RLPItemType.DATA_ITEM);
-        } else if (prefix <= 0xb7) {
-            // Short string.
-
-            uint256 strLen = prefix - 0x80;
-            
+        unchecked {
             require(
-                _in.length > strLen,
-                "Invalid RLP short string."
+                _in.length > 0,
+                "RLP item cannot be null."
             );
 
-            return (1, strLen, RLPItemType.DATA_ITEM);
-        } else if (prefix <= 0xbf) {
-            // Long string.
-            uint256 lenOfStrLen = prefix - 0xb7;
-
-            require(
-                _in.length > lenOfStrLen,
-                "Invalid RLP long string length."
-            );
-
-            uint256 strLen;
+            uint256 ptr = _in.ptr;
+            uint256 prefix;
             assembly {
-                // Pick out the string length.
-                strLen := div(
-                    mload(add(ptr, 1)),
-                    exp(256, sub(32, lenOfStrLen))
-                )
+                prefix := byte(0, mload(ptr))
             }
 
-            require(
-                _in.length > lenOfStrLen + strLen,
-                "Invalid RLP long string."
-            );
+            if (prefix <= 0x7f) {
+                // Single byte.
 
-            return (1 + lenOfStrLen, strLen, RLPItemType.DATA_ITEM);
-        } else if (prefix <= 0xf7) {
-            // Short list.
-            uint256 listLen = prefix - 0xc0;
+                return (0, 1, RLPItemType.DATA_ITEM);
+            } else if (prefix <= 0xb7) {
+                // Short string.
 
-            require(
-                _in.length > listLen,
-                "Invalid RLP short list."
-            );
+                uint256 strLen = prefix - 0x80;
+                
+                require(
+                    _in.length > strLen,
+                    "Invalid RLP short string."
+                );
 
-            return (1, listLen, RLPItemType.LIST_ITEM);
-        } else {
-            // Long list.
-            uint256 lenOfListLen = prefix - 0xf7;
+                return (1, strLen, RLPItemType.DATA_ITEM);
+            } else if (prefix <= 0xbf) {
+                // Long string.
+                uint256 lenOfStrLen = prefix - 0xb7;
 
-            require(
-                _in.length > lenOfListLen,
-                "Invalid RLP long list length."
-            );
+                require(
+                    _in.length > lenOfStrLen,
+                    "Invalid RLP long string length."
+                );
 
-            uint256 listLen;
-            assembly {
-                // Pick out the list length.
-                listLen := div(
-                    mload(add(ptr, 1)),
-                    exp(256, sub(32, lenOfListLen))
-                )
+                uint256 strLen;
+                assembly {
+                    // Pick out the string length.
+                    strLen := div(
+                        mload(add(ptr, 1)),
+                        exp(256, sub(32, lenOfStrLen))
+                    )
+                }
+
+                require(
+                    _in.length > lenOfStrLen + strLen,
+                    "Invalid RLP long string."
+                );
+
+                return (1 + lenOfStrLen, strLen, RLPItemType.DATA_ITEM);
+            } else if (prefix <= 0xf7) {
+                // Short list.
+                uint256 listLen = prefix - 0xc0;
+
+                require(
+                    _in.length > listLen,
+                    "Invalid RLP short list."
+                );
+
+                return (1, listLen, RLPItemType.LIST_ITEM);
+            } else {
+                // Long list.
+                uint256 lenOfListLen = prefix - 0xf7;
+
+                require(
+                    _in.length > lenOfListLen,
+                    "Invalid RLP long list length."
+                );
+
+                uint256 listLen;
+                assembly {
+                    // Pick out the list length.
+                    listLen := div(
+                        mload(add(ptr, 1)),
+                        exp(256, sub(32, lenOfListLen))
+                    )
+                }
+
+                require(
+                    _in.length > lenOfListLen + listLen,
+                    "Invalid RLP long list."
+                );
+
+                return (1 + lenOfListLen, listLen, RLPItemType.LIST_ITEM);
             }
-
-            require(
-                _in.length > lenOfListLen + listLen,
-                "Invalid RLP long list."
-            );
-
-            return (1 + lenOfListLen, listLen, RLPItemType.LIST_ITEM);
         }
     }
 
@@ -570,40 +572,42 @@ library Lib_RLPReader {
             bytes memory
         )
     {
-        bytes memory out = new bytes(_length);
-        if (out.length == 0) {
-            return out;
-        }
-
-        uint256 src = _src + _offset;
-        uint256 dest;
-        assembly {
-            dest := add(out, 32)
-        }
-
-        // Copy over as many complete words as we can.
-        for (uint256 i = 0; i < _length / 32; i++) {
-            assembly {
-                mstore(dest, mload(src))
+        unchecked {
+            bytes memory out = new bytes(_length);
+            if (out.length == 0) {
+                return out;
             }
 
-            src += 32;
-            dest += 32;
-        }
+            uint256 src = _src + _offset;
+            uint256 dest;
+            assembly {
+                dest := add(out, 32)
+            }
 
-        // Pick out the remaining bytes.
-        uint256 mask = 256 ** (32 - (_length % 32)) - 1;
-        assembly {
-            mstore(
-                dest,
-                or(
-                    and(mload(src), not(mask)),
-                    and(mload(dest), mask)
+            // Copy over as many complete words as we can.
+            for (uint256 i = 0; i < _length / 32; i++) {
+                assembly {
+                    mstore(dest, mload(src))
+                }
+
+                src += 32;
+                dest += 32;
+            }
+
+            // Pick out the remaining bytes.
+            uint256 mask = 256 ** (32 - (_length % 32)) - 1;
+            assembly {
+                mstore(
+                    dest,
+                    or(
+                        and(mload(src), not(mask)),
+                        and(mload(dest), mask)
+                    )
                 )
-            )
-        }
+            }
 
-        return out;
+            return out;
+        }
     }
 
     /**

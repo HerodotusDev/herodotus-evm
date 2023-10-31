@@ -42,8 +42,6 @@ contract FactsRegistry_Test is Test {
         bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
         bytes memory accountProof = _getAccountProof(proveForBlock, accountToProve);
 
-        console.logBytes(accountProof);
-
         // TODO something silly is happening here
         Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
             treeId: DEFAULT_TREE_ID,
