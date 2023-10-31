@@ -38,7 +38,7 @@ contract FactsRegistry_Test is Test {
         uint256 proveForBlock = 7583802;
         
         bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
-        bytes[] memory accountProof = _getAccountProof(proveForBlock, accountToProve);
+        bytes memory accountProof = _getAccountProof(proveForBlock, accountToProve);
 
         // TODO something silly is happening here
         Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
@@ -59,7 +59,7 @@ contract FactsRegistry_Test is Test {
         assertEq(accountStorageRoot, 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
     }
 
-    function _getAccountProof(uint256 blockNumber, address account) internal returns(bytes[] memory) {
+    function _getAccountProof(uint256 blockNumber, address account) internal returns(bytes memory) {
         string[] memory inputs = new string[](6);
         inputs[0] = "node";
         inputs[1] = "./helpers/state-proofs/fetch_state_proof.js";
@@ -68,7 +68,7 @@ contract FactsRegistry_Test is Test {
         inputs[4] = "0x0"; // storage key
         inputs[5] = "account"; // storage value
         bytes memory abiEncoded = vm.ffi(inputs);
-        bytes[] memory accountProof = abi.decode(abiEncoded, (bytes[]));
+        bytes memory accountProof = abi.decode(abiEncoded, (bytes));
         return accountProof;
     }
 

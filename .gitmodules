@@ -7,6 +7,3 @@
 [submodule "lib/solidity-mmr"]
 	path = lib/solidity-mmr
 	url = https://github.com/HerodotusDev/solidity-mmr
-[submodule "lib/ethereum-optimism"]
-	path = lib/ethereum-optimism
-	url = https://github.com/ethereum-optimism/optimism

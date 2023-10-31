@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
-import {SecureMerkleTrie} from "@optimism/libraries/trie/SecureMerkleTrie.sol";
-import {RLPReader} from "@optimism/libraries/rlp/RLPReader.sol";
+import {Lib_SecureMerkleTrie as SecureMerkleTrie} from "@optimism/libraries/trie/Lib_SecureMerkleTrie.sol";
+import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 
 import {HeadersProcessor} from "./HeadersProcessor.sol";
 
@@ -48,7 +48,7 @@ contract FactsRegistry {
         address account,
         uint16 accountFieldsToSave,
         Types.BlockHeaderProof calldata headerProof,
-        bytes[] calldata accountTrieProof
+        bytes calldata accountTrieProof
     ) external {
         // Verify the proof and decode the account fields
         (uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) = verifyAccount(account, headerProof, accountTrieProof);
@@ -84,7 +84,7 @@ contract FactsRegistry {
         address account,
         uint256 blockNumber,
         bytes32 slot,
-        bytes[] calldata storageSlotTrieProof
+        bytes calldata storageSlotTrieProof
     ) external {
         // Verify the proof and decode the slot value
         bytes32 slotValue = verifyStorage(account, blockNumber, slot, storageSlotTrieProof);
@@ -95,7 +95,7 @@ contract FactsRegistry {
     function verifyAccount(        
         address account,
         Types.BlockHeaderProof calldata headerProof,
-        bytes[] calldata accountTrieProof
+        bytes calldata accountTrieProof
     ) public view returns(uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) {
         // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
         _verifyAccumulatedHeaderProof(headerProof);
@@ -103,7 +103,7 @@ contract FactsRegistry {
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
         // TODO in case the account is not present in the state trie, the proof will fail
-        bytes memory accountRLP = SecureMerkleTrie.get(
+        (bool doesAccountExist, bytes memory accountRLP) = SecureMerkleTrie.get(
             abi.encodePacked(account),
             accountTrieProof,
             stateRoot
@@ -122,12 +122,12 @@ contract FactsRegistry {
         address account,
         uint256 blockNumber,
         bytes32 slot,
-        bytes[] calldata storageSlotTrieProof
+        bytes calldata storageSlotTrieProof
     ) public view returns(bytes32 slotValue) {
         bytes32 storageRoot = accountField[account][blockNumber][Types.AccountFields.STORAGE_ROOT];
         require(storageRoot != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
 
-        bytes memory slotValueRLP = SecureMerkleTrie.get(
+        (bool doesSlotExist, bytes memory slotValueRLP) = SecureMerkleTrie.get(
             abi.encode(slot),
             storageSlotTrieProof,
             storageRoot
