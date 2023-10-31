@@ -1,0 +1,11 @@
+cache/
+out/
+node_modules/
+
+.env.goerli
+.env.mumbai
+.env
+broadcast
+
+artifacts-zk/
+cache-zk/
