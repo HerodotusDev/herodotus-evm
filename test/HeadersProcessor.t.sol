@@ -37,13 +37,13 @@ contract HeadersProcessor_Test is Test {
     }
 
     function test_processBlocksBatchNotAccumulated() public {
-        _receiveParentHashOfBlockWithNumber(1000);
+        _receiveParentHashOfBlockWithNumber(7583802);
 
         bytes[] memory headersBatch = new bytes[](1);
-        headersBatch[0] = _getRlpBlockHeader(999);
+        headersBatch[0] = _getRlpBlockHeader(7583801);
 
         bytes32[] memory emptyPeaks = new bytes32[](0);
-        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(999, emptyPeaks), headersBatch);
+        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583801, emptyPeaks), headersBatch);
 
         uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
         assertEq(newMMRSize, 1);
