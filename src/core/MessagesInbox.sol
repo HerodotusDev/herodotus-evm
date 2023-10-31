@@ -16,7 +16,7 @@ contract MessagesInbox {
         headersProcessor = HeadersProcessor(_headersProcessor);
     }
 
-    function receiveParentHashForBlock(bytes32 parentHash, uint256 blockNumber) external onlyCrossdomainCounterpart {
+    function receiveParentHashForBlock(uint256 blockNumber, bytes32 parentHash) external onlyCrossdomainCounterpart {
         headersProcessor.receiveParentHash(blockNumber, parentHash);
         emit ReceivedParentHash(uint8(1), parentHash, blockNumber); // TODO: Handle originChainId
     }
