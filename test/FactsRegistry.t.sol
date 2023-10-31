@@ -55,6 +55,29 @@ contract FactsRegistry_Test is Test {
         assertEq(accountCodeHash, expectedCodeHash);
     }
 
+    function test_proveAccount_accountDoesNotExist() public {
+        uint256 proveForBlock = 7583802;
+        address accountToProve = 0x456Cb24d30eaA6AfFC2A6924Dae0d2a0a8c99C73;
+
+        _proveAccountWithAddressAtBlock(accountToProve, proveForBlock);
+
+        uint256 expectedNonce = 0;
+        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
+        assertEq(savedNonce, expectedNonce);
+
+        uint256 expectedBalance = 0;
+        uint256 savedBalance = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
+        assertEq(savedBalance, expectedBalance);
+
+        bytes32 expectedStorageRoot = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421; // EMPTY_TRIE_ROOT_HASH
+        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
+        assertEq(accountStorageRoot, expectedStorageRoot);
+
+        bytes32 expectedCodeHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // EMPTY_CODE_HASH
+        bytes32 accountCodeHash = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
+        assertEq(accountCodeHash, expectedCodeHash);
+    }
+
     function test_proveStorage() public {
         uint256 proveForBlock = 7583802;
         address accountToProve = 0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6;

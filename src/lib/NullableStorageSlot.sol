@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 
-library Nullable { 
+library NullableStorageSlot { 
     function toNullable(uint256 value) internal pure returns (uint256) {
         if (value == type(uint256).max) {
             return value;
@@ -11,7 +11,7 @@ library Nullable {
     }
 
     function fromNullable(uint256 value) internal pure returns (uint256) {
-        require(!Nullable.isNull(value), "Nullable: value is null");
+        require(!NullableStorageSlot.isNull(value), "NullableStorageSlot: value is null");
         if (value == type(uint256).max) {
             return value;
         }

@@ -10,9 +10,7 @@ import {HeadersProcessor} from "./HeadersProcessor.sol";
 import {Types} from "../lib/Types.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
-
-
-
+import {NullableStorageSlot} from "../lib/NullableStorageSlot.sol";
 
 
 contract FactsRegistry {
@@ -36,9 +34,9 @@ contract FactsRegistry {
     HeadersProcessor public immutable headersProcessor;
 
 
-    mapping(address => mapping(uint256 => mapping(Types.AccountFields => bytes32))) public accountField;
+    mapping(address => mapping(uint256 => mapping(Types.AccountFields => bytes32))) internal _accountField;
     // address => block number => slot => value
-    mapping(address => mapping(uint256 => mapping(bytes32 => bytes32))) public accountStorageSlotValues;
+    mapping(address => mapping(uint256 => mapping(bytes32 => bytes32))) internal _accountStorageSlotValues;
 
     constructor(address _headersProcessor) {
         headersProcessor = HeadersProcessor(_headersProcessor);
@@ -55,19 +53,23 @@ contract FactsRegistry {
 
         // Save the desired account properties to the storage
         if (accountFieldsToSave.readBitAtIndexFromRight(0)) {
-            accountField[account][headerProof.blockNumber][Types.AccountFields.NONCE] = bytes32(nonce);
+            uint256 nonceNullable = NullableStorageSlot.toNullable(nonce);
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.NONCE] = bytes32(nonceNullable);
         }
 
         if (accountFieldsToSave.readBitAtIndexFromRight(1)) {
-            accountField[account][headerProof.blockNumber][Types.AccountFields.BALANCE] = bytes32(accountBalance);
+            uint256 accountBalanceNullable = NullableStorageSlot.toNullable(accountBalance);
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.BALANCE] = bytes32(accountBalanceNullable);
         }
 
         if (accountFieldsToSave.readBitAtIndexFromRight(2)) {
-            accountField[account][headerProof.blockNumber][Types.AccountFields.CODE_HASH] = codeHash;
+            uint256 codeHashNullable = NullableStorageSlot.toNullable(uint256(codeHash));
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.CODE_HASH] = bytes32(codeHashNullable);
         }
 
         if (accountFieldsToSave.readBitAtIndexFromRight(3)) {
-            accountField[account][headerProof.blockNumber][Types.AccountFields.STORAGE_ROOT] = storageRoot;
+            uint256 storageRootNullable = NullableStorageSlot.toNullable(uint256(storageRoot));
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.STORAGE_ROOT] = bytes32(storageRootNullable);
         }
 
         emit AccountProven(
@@ -87,9 +89,9 @@ contract FactsRegistry {
         bytes calldata storageSlotTrieProof
     ) external {
         // Verify the proof and decode the slot value
-        bytes32 slotValue = verifyStorage(account, blockNumber, slot, storageSlotTrieProof);
-        accountStorageSlotValues[account][blockNumber][slot] = slotValue;
-        emit StorageSlotProven(account, blockNumber, slot, slotValue);
+        uint256 slotValueNullable = NullableStorageSlot.toNullable(uint256(verifyStorage(account, blockNumber, slot, storageSlotTrieProof)));
+        _accountStorageSlotValues[account][blockNumber][slot] = bytes32(slotValueNullable);
+        emit StorageSlotProven(account, blockNumber, slot, bytes32(NullableStorageSlot.fromNullable(slotValueNullable)));
     }
 
     function verifyAccount(        
@@ -118,8 +120,11 @@ contract FactsRegistry {
         bytes32 slot,
         bytes calldata storageSlotTrieProof
     ) public view returns(bytes32 slotValue) {
-        bytes32 storageRoot = accountField[account][blockNumber][Types.AccountFields.STORAGE_ROOT];
-        require(storageRoot != bytes32(0), "ERR_EMPTY_STORAGE_ROOT");
+        bytes32 storageRootRaw = _accountField[account][blockNumber][Types.AccountFields.STORAGE_ROOT];
+        // Convert from nullable
+        bytes32 storageRoot = bytes32(NullableStorageSlot.fromNullable(
+            uint256(storageRootRaw)
+        ));
 
         (bool doesSlotExist, bytes memory slotValueRLP) = SecureMerkleTrie.get(
             abi.encode(slot),
@@ -128,6 +133,36 @@ contract FactsRegistry {
         );
 
         slotValue = slotValueRLP.toRLPItem().readBytes32();
+    }
+
+    function accountField(
+        address account,
+        uint256 blockNumber,
+        Types.AccountFields field
+    ) external view returns(bytes32) {
+        bytes32 valueRaw = _accountField[account][blockNumber][field];
+        // If value is null revert
+        if (NullableStorageSlot.isNull(uint256(valueRaw))) {
+            revert("ERR_VALUE_IS_NULL");
+        }
+        return bytes32(NullableStorageSlot.fromNullable(
+            uint256(valueRaw)
+        ));
+    }
+
+    function accountStorageSlotValues(
+        address account,
+        uint256 blockNumber,
+        bytes32 slot
+    ) external view returns(bytes32) {
+        bytes32 valueRaw = _accountStorageSlotValues[account][blockNumber][slot];
+        // If value is null revert
+        if (NullableStorageSlot.isNull(uint256(valueRaw))) {
+            revert("ERR_VALUE_IS_NULL");
+        }
+        return bytes32(NullableStorageSlot.fromNullable(
+            uint256(valueRaw)
+        ));
     }
 
     function _verifyAccumulatedHeaderProof(
@@ -151,8 +186,9 @@ contract FactsRegistry {
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
-    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP)
-    internal view returns(uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash) {
+    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP) 
+        internal view
+    returns(uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash) {
         if (!doesAccountExist) {
             return (0, 0, EMPTY_TRIE_ROOT_HASH, EMPTY_CODE_HASH); // TODO ensure this order is correct
         }
