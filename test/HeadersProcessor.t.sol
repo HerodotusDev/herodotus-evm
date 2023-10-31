@@ -50,8 +50,6 @@ contract HeadersProcessor_Test is Test {
 
         bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
         assertFalse(mmrRoot == bytes32(0));
-
-        // TODO: Check that the MMR root is correct(expectedRoot)
     }
 
     function test_processBlocksBatchAccumulated() public {

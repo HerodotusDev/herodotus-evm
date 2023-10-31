@@ -11,11 +11,12 @@ contract Deploy_MessagesInbox is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         address crossdomainMsgSender = vm.envAddress("CROSS_DOMAIN_MSG_SENDER");
+        uint256 crossdomainMsgsOriginChainId = vm.envUint("CROSS_DOMAIN_MSGS_CHAIN_ID");
         address headersProcessor = vm.envAddress("HEADERS_PROCESSOR");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        MessagesInbox nativeParentHashesFetcher = new MessagesInbox(crossdomainMsgSender, headersProcessor);
+        MessagesInbox nativeParentHashesFetcher = new MessagesInbox(crossdomainMsgSender, headersProcessor, crossdomainMsgsOriginChainId);
         vm.stopBroadcast();
     }
 }
