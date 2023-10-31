@@ -10,7 +10,7 @@ import {EOA} from "./helpers/EOA.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
 
-import "forge-std/console.sol";
+
 
 contract HeadersProcessor_Test is Test {
     using Strings for uint256;
@@ -104,8 +104,6 @@ contract HeadersProcessor_Test is Test {
 
         bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
         assertFalse(mmrRoot == bytes32(0));
-
-        console.logBytes32(mmrRoot);
     }
 
     function _receiveParentHashOfBlockWithNumber(uint256 blockNumber) internal {

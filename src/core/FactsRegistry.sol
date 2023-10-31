@@ -12,7 +12,7 @@ import {Bitmap16} from "../lib/Bitmap16.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 
 
-import "forge-std/console.sol";
+
 
 
 contract FactsRegistry {
@@ -23,7 +23,7 @@ contract FactsRegistry {
     using RLPReader for RLPReader.RLPItem;
 
     event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
-    event TransactionProven(uint256 blockNumber, bytes32 rlpEncodedTxIndex, bytes rlpEncodedTx);
+    event StorageSlotProven(address account, uint256 blockNumber, bytes32 slot, bytes32 slotValue);
 
     uint8 private constant ACCOUNT_NONCE_INDEX = 0;
     uint8 private constant ACCOUNT_BALANCE_INDEX = 1;
@@ -89,7 +89,7 @@ contract FactsRegistry {
         // Verify the proof and decode the slot value
         bytes32 slotValue = verifyStorage(account, blockNumber, slot, storageSlotTrieProof);
         accountStorageSlotValues[account][blockNumber][slot] = slotValue;
-        // TODO: Emit an event ?
+        emit StorageSlotProven(account, blockNumber, slot, slotValue);
     }
 
     function verifyAccount(        
@@ -109,7 +109,7 @@ contract FactsRegistry {
             stateRoot
         );
         // Decode the account fields
-        (nonce, accountBalance, codeHash, storageRoot) = _decodeAccountFields(doesAccountExist, accountRLP);
+        (nonce, accountBalance, storageRoot, codeHash) = _decodeAccountFields(doesAccountExist, accountRLP);
     }
 
     function verifyStorage(
@@ -127,10 +127,7 @@ contract FactsRegistry {
             storageRoot
         );
 
-        bytes memory slotValueBytes = slotValueRLP.toRLPItem().readBytes();
-        assembly {
-            slotValue := mload(add(slotValueBytes, 32))
-        }
+        slotValue = slotValueRLP.toRLPItem().readBytes32();
     }
 
     function _verifyAccumulatedHeaderProof(
@@ -154,37 +151,17 @@ contract FactsRegistry {
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
-    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP) internal view returns(uint256, uint256, bytes32, bytes32) {
+    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP)
+    internal view returns(uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash) {
         if (!doesAccountExist) {
-            return (0, 0, EMPTY_CODE_HASH, EMPTY_TRIE_ROOT_HASH); // TODO ensure this order is correct
+            return (0, 0, EMPTY_TRIE_ROOT_HASH, EMPTY_CODE_HASH); // TODO ensure this order is correct
         }
 
         RLPReader.RLPItem[] memory accountFields = accountRLP.toRLPItem().readList();
-        bytes memory nonceBytes = accountFields[ACCOUNT_NONCE_INDEX].readBytes(); // This is correct
-        uint256 nonce;
-        // TODO this needs to be fixed, it's not working too much data is loaded from memory into the variable
-        assembly {
-            nonce := mload(add(nonceBytes, 0x1))
-        }
 
-        bytes memory balanceBytes = accountFields[ACCOUNT_BALANCE_INDEX].readBytes();
-        uint256 accountBalance;
-        assembly {
-            accountBalance := mload(add(balanceBytes, 0x20))
-        }
-
-        bytes memory codeHashBytes = accountFields[ACCOUNT_CODE_HASH_INDEX].readBytes();
-        bytes32 codeHash;
-        assembly {
-            codeHash := mload(add(codeHashBytes, 0x20))
-        }
-
-        bytes memory storageRootBytes = accountFields[ACCOUNT_STORAGE_ROOT_INDEX].readBytes();
-        bytes32 storageRoot;
-        assembly {
-            storageRoot := mload(add(storageRootBytes, 0x20))
-        }
-
-        return (nonce, accountBalance, codeHash, storageRoot);
+        nonce = accountFields[ACCOUNT_NONCE_INDEX].readUint256();
+        balance = accountFields[ACCOUNT_BALANCE_INDEX].readUint256();
+        codeHash = accountFields[ACCOUNT_CODE_HASH_INDEX].readBytes32();
+        storageRoot = accountFields[ACCOUNT_STORAGE_ROOT_INDEX].readBytes32();
     }
 }

@@ -47,7 +47,7 @@ async function main() {
     slotArgStr =
       proofType === "account"
         ? Object.keys(cached["GOERLI"][blockArgStr][accountArgStr])[0]
-        : slotArgStr;
+        : utils.hexZeroPad(slotArgStr, 32);
     proof = cached["GOERLI"][blockArgStr][accountArgStr][slotArgStr];
     if (!proof)
       throw new Error(

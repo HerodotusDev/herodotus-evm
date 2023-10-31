@@ -7,7 +7,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {FactsRegistry} from "../src/core/FactsRegistry.sol";
 import {Types} from "../src/lib/Types.sol";
 
-import "forge-std/console.sol";
 
 uint256 constant DEFAULT_TREE_ID = 0;
 
@@ -33,16 +32,50 @@ contract FactsRegistry_Test is Test {
         factsRegistry = new FactsRegistry(address(mockedHeadersProcessor));
     }
 
-    function test_proveAccount() public {
-        (bytes32[] memory peaks, bytes32[] memory mmrInclusionProof) = _peaksAndInclusionProofForBlock7583802();
-        
-        address accountToProve = 0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6;
+    function test_proveAccount_accountExists() public {
         uint256 proveForBlock = 7583802;
+        address accountToProve = 0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6;
+
+        _proveAccountWithAddressAtBlock(accountToProve, proveForBlock);
+
+        uint256 expectedNonce = 1;
+        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
+        assertEq(savedNonce, expectedNonce);
+
+        uint256 expectedBalance = 0;
+        uint256 savedBalance = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
+        assertEq(savedBalance, expectedBalance);
+
+        bytes32 expectedStorageRoot = 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185;
+        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
+        assertEq(accountStorageRoot, expectedStorageRoot);
+
+        bytes32 expectedCodeHash = 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c;
+        bytes32 accountCodeHash = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
+        assertEq(accountCodeHash, expectedCodeHash);
+    }
+
+    function test_proveStorage() public {
+        uint256 proveForBlock = 7583802;
+        address accountToProve = 0x7b2f05cE9aE365c3DBF30657e2DC6449989e83D6;
+        bytes32 slotToProve = 0x0000000000000000000000000000000000000000000000000000000000000033;
+
+        _proveAccountWithAddressAtBlock(accountToProve, proveForBlock);
+
+        bytes memory storageProof = _getStorageProof(proveForBlock, accountToProve, slotToProve);
+        factsRegistry.proveStorage(accountToProve, proveForBlock, slotToProve, storageProof);
+
+        bytes32 expectedSlotValue = bytes32(uint256(uint160(0xeF7b1e0ddEA68Cad3d74fbB7A03E6Ccde3091286)));
+        bytes32 actualSlotValue = factsRegistry.accountStorageSlotValues(accountToProve, proveForBlock, slotToProve);
+        assertEq(actualSlotValue, expectedSlotValue);
+    }
+
+    function _proveAccountWithAddressAtBlock(address accountToProve, uint256 proveForBlock) internal {
+        (bytes32[] memory peaks, bytes32[] memory mmrInclusionProof) = _peaksAndInclusionProofForBlock(proveForBlock);
         
         bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
         bytes memory accountProof = _getAccountProof(proveForBlock, accountToProve);
 
-        // TODO something silly is happening here
         Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
             treeId: DEFAULT_TREE_ID,
             mmrTreeSize: 7,
@@ -53,12 +86,6 @@ contract FactsRegistry_Test is Test {
             provenBlockHeader: rlpHeader
         });
         factsRegistry.proveAccount(accountToProve, type(uint16).max, headerProof, accountProof);
-
-        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
-        // assertEq(savedNonce, 1);
-
-        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
-        assertEq(accountStorageRoot, 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185);
     }
 
     function _getAccountProof(uint256 blockNumber, address account) internal returns(bytes memory) {
@@ -74,7 +101,22 @@ contract FactsRegistry_Test is Test {
         return accountProof;
     }
 
-    function _peaksAndInclusionProofForBlock7583802() internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+    function _getStorageProof(uint256 blockNumber, address account, bytes32 slot) internal returns(bytes memory) {
+        string[] memory inputs = new string[](6);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/state-proofs/fetch_state_proof.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = uint256(uint160(account)).toHexString();
+        inputs[4] = uint256(slot).toHexString();
+        inputs[5] = "slot"; // storage value
+        bytes memory abiEncoded = vm.ffi(inputs);
+        bytes memory storageProof = abi.decode(abiEncoded, (bytes));
+        return storageProof;
+    }
+
+    function _peaksAndInclusionProofForBlock(uint256 blockNumber) internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+        require(blockNumber == 7583802, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_ONLY_FOR_BLOCK_7583802");
+
         bytes[] memory headersBatch = new bytes[](4);
         headersBatch[0] = _getRlpBlockHeader(7583802);
         headersBatch[1] = _getRlpBlockHeader(7583801);
