@@ -190,7 +190,7 @@ contract FactsRegistry {
         internal view
     returns(uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash) {
         if (!doesAccountExist) {
-            return (0, 0, EMPTY_TRIE_ROOT_HASH, EMPTY_CODE_HASH); // TODO ensure this order is correct
+            return (0, 0, EMPTY_TRIE_ROOT_HASH, EMPTY_CODE_HASH);
         }
 
         RLPReader.RLPItem[] memory accountFields = accountRLP.toRLPItem().readList();
