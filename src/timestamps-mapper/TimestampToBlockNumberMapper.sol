@@ -10,8 +10,6 @@ import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 
-import "forge-std/console.sol";
-
 contract TimestampToBlockNumberMapper {
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize);
@@ -33,7 +31,7 @@ contract TimestampToBlockNumberMapper {
 
     /// @notice struct passed as calldata, represents the binsearch path element
     struct BinsearchPathElement {
-        uint256 leafIndex;
+        uint256 elementIndex;
         bytes32 leafValue;
         bytes32[] inclusionProof;
     }
@@ -143,23 +141,22 @@ contract TimestampToBlockNumberMapper {
         uint256 currentElement = remappedBlocksAmount / 2;
 
         for(uint256 i = 0; i < searchPath.length; i++) {
-            console.log("current iteration: %s", i);
-            console.log("currentElement: %s", currentElement);
-            require(searchPath[i].leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
+            uint256 leafIndex = StatelessMmrHelpers.mmrIndexToLeafIndex(searchPath[i].elementIndex);
+            require(leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
             
             StatelessMmr.verifyProof(
-                searchPath[i].leafIndex,
+                searchPath[i].elementIndex,
                 searchPath[i].leafValue,
                 searchPath[i].inclusionProof,
                 peaks,
-                remappedBlocksAmount,
+                searchAtSize,
                 remappedRoot
             );
 
             if(timestamp < uint256(searchPath[i].leafValue)) {
                 currentElement = currentElement / 2;
             } else {
-                currentElement = currentElement + (currentElement / 2);
+                currentElement = currentElement + (currentElement % 2 == 0 ? currentElement / 2 : (currentElement + 1) / 2);
             }
         }
 

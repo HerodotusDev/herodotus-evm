@@ -8,9 +8,6 @@ import {TimestampToBlockNumberMapper} from "../src/timestamps-mapper/TimestampTo
 import {Types} from "../src/lib/Types.sol";
 
 
-import "forge-std/console.sol";
-
-
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
@@ -109,18 +106,18 @@ contract TimestampToBlockNumberMapper_Test is Test {
         timestamps[1] = 1663065480;
         timestamps[2] = 1663065492;
 
-        (bytes32[] memory peaks, bytes32[] memory firstElementInclusionProof) = _peaksAndInclusionProofForTimestamp(1);
-        (bytes32[] memory newPeaks, bytes32[] memory secondElementInclusionProof) = _peaksAndInclusionProofForTimestamp(2);
+        (bytes32[] memory peaks, bytes32[] memory firstElementInclusionProof) = _peaksAndInclusionProofForTimestamp(2);
+        (bytes32[] memory newPeaks, bytes32[] memory secondElementInclusionProof) = _peaksAndInclusionProofForTimestamp(4);
         assertEq(keccak256(abi.encode(peaks)), keccak256(abi.encode(newPeaks)));
 
         TimestampToBlockNumberMapper.BinsearchPathElement memory firstSearchPathElement = TimestampToBlockNumberMapper.BinsearchPathElement(
-            1,
-            bytes32(timestamps[0]),
+            2,
+            bytes32(timestamps[1]),
             firstElementInclusionProof
         );
         TimestampToBlockNumberMapper.BinsearchPathElement memory secondSearchPathElement = TimestampToBlockNumberMapper.BinsearchPathElement(
-            2,
-            bytes32(timestamps[1]),
+            4,
+            bytes32(timestamps[2]),
             secondElementInclusionProof
         );
 
@@ -135,6 +132,7 @@ contract TimestampToBlockNumberMapper_Test is Test {
             queriedTimestamp,
             searchPath
         );
+        assertEq(result, expectedCorrespondingBlockNumber);
     }
 
     function _createMapper(uint256 startBlockNumber) internal returns (uint256) {
