@@ -10,6 +10,8 @@ import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 
+import "forge-std/console.sol";
+
 contract TimestampToBlockNumberMapper {
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize);
@@ -141,6 +143,8 @@ contract TimestampToBlockNumberMapper {
         uint256 currentElement = remappedBlocksAmount / 2;
 
         for(uint256 i = 0; i < searchPath.length; i++) {
+            console.log("current iteration: %s", i);
+            console.log("currentElement: %s", currentElement);
             require(searchPath[i].leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
             
             StatelessMmr.verifyProof(

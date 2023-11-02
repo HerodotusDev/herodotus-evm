@@ -8,6 +8,9 @@ import {TimestampToBlockNumberMapper} from "../src/timestamps-mapper/TimestampTo
 import {Types} from "../src/lib/Types.sol";
 
 
+import "forge-std/console.sol";
+
+
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
@@ -97,6 +100,41 @@ contract TimestampToBlockNumberMapper_Test is Test {
 
     function test_binsearchBlockNumberByTimestamp() public {
         test_reindexBatch();
+
+        uint256 queriedTimestamp = 1663065482;
+        uint256 expectedCorrespondingBlockNumber = 7583801;
+
+        uint256[] memory timestamps = new uint256[](3);
+        timestamps[0] = 1663065468;
+        timestamps[1] = 1663065480;
+        timestamps[2] = 1663065492;
+
+        (bytes32[] memory peaks, bytes32[] memory firstElementInclusionProof) = _peaksAndInclusionProofForTimestamp(1);
+        (bytes32[] memory newPeaks, bytes32[] memory secondElementInclusionProof) = _peaksAndInclusionProofForTimestamp(2);
+        assertEq(keccak256(abi.encode(peaks)), keccak256(abi.encode(newPeaks)));
+
+        TimestampToBlockNumberMapper.BinsearchPathElement memory firstSearchPathElement = TimestampToBlockNumberMapper.BinsearchPathElement(
+            1,
+            bytes32(timestamps[0]),
+            firstElementInclusionProof
+        );
+        TimestampToBlockNumberMapper.BinsearchPathElement memory secondSearchPathElement = TimestampToBlockNumberMapper.BinsearchPathElement(
+            2,
+            bytes32(timestamps[1]),
+            secondElementInclusionProof
+        );
+
+        TimestampToBlockNumberMapper.BinsearchPathElement[] memory searchPath = new TimestampToBlockNumberMapper.BinsearchPathElement[](2);
+        searchPath[0] = firstSearchPathElement;
+        searchPath[1] = secondSearchPathElement;
+
+        uint256 result = mapper.binsearchBlockNumberByTimestamp(
+            DEFAULT_TREE_ID,
+            4,
+            peaks,
+            queriedTimestamp,
+            searchPath
+        );
     }
 
     function _createMapper(uint256 startBlockNumber) internal returns (uint256) {
@@ -109,9 +147,9 @@ contract TimestampToBlockNumberMapper_Test is Test {
 
         uint256[] memory timestamps = new uint256[](3);
 
-        timestamps[0] = 0x63205d7c;
-        timestamps[1] = 0x63205d88;
-        timestamps[2] = 0x63205d94;
+        timestamps[0] = 1663065468;
+        timestamps[1] = 1663065480;
+        timestamps[2] = 1663065492;
 
         string[] memory inputs = new string[](3 + timestamps.length);
         inputs[0] = "node";

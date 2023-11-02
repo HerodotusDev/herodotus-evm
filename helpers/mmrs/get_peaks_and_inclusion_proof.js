@@ -1,7 +1,7 @@
 const { default: CoreMMR } = require("@accumulators/merkle-mountain-range");
 const { KeccakHasher } = require("@accumulators/hashers");
 const { default: MMRInMemoryStore } = require("@accumulators/memory");
-const { utils, BigNumber } = require("ethers");
+const { utils } = require("ethers");
 
 async function main() {
   const store = new MMRInMemoryStore();
@@ -12,16 +12,22 @@ async function main() {
   const leafIdToProve = process.argv[2];
   const mmrLeaves = process.argv.slice(3);
 
+  const areProvidedValuesIntegers = mmrLeaves.every((leaf) =>
+    Number.isInteger(parseInt(leaf))
+  );
+  const abiEncodingType = areProvidedValuesIntegers ? "uint256[]" : "bytes32[]";
+
   for (const leaf of mmrLeaves) {
-    await mmr.append(leaf);
+    const appendResult = await mmr.append(leaf);
+    // console.log(appendResult, leaf);
   }
 
-  const peaks = await mmr.getPeaks();
   const proof = await mmr.getProof(parseInt(leafIdToProve));
+  // console.log("proof: ", proof);
 
   const abiEncodedResult = encoder.encode(
-    ["bytes32[]", "bytes32[]"],
-    [peaks, proof.siblingsHashes]
+    [abiEncodingType, abiEncodingType],
+    [proof.peaksHashes, proof.siblingsHashes]
   );
   console.log(abiEncodedResult);
 }
