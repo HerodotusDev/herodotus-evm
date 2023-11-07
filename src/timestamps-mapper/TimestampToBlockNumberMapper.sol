@@ -156,6 +156,7 @@ contract TimestampToBlockNumberMapper {
             );
 
             if(timestamp < uint256(searchPath[i].leafValue)) {
+                require(currentElement >= 1, "ERR_SEARCH_BOUND_OUT_OF_RANGE");
                 upperBound = currentElement - 1;
             } else {
                 lowerBound = currentElement;
