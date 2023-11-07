@@ -1,20 +1,30 @@
-// SPDX-License-Identifier: GPLv3
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {HeadersProcessor} from "./HeadersProcessor.sol";
 
 
-contract MessagesInbox {
+contract MessagesInbox is Ownable2Step {
     event ReceivedParentHash(uint256 originChainId, bytes32 blockhash, uint256 blockNumber);
 
-    address public immutable crossDomainMsgSender;
-    HeadersProcessor public immutable headersProcessor;
-    uint256 public immutable messagesOriginChainId;
+    address public crossDomainMsgSender;
+    HeadersProcessor public headersProcessor;
+    uint256 public messagesOriginChainId;
 
-    constructor(address _crossDomainMsgSender, address _headersProcessor, uint256 _messagesOriginChainId) {
+    constructor() Ownable(msg.sender) {}
+
+    function setCrossDomainMsgSender(address _crossDomainMsgSender) external onlyOwner {
         crossDomainMsgSender = _crossDomainMsgSender;
+    }
+
+    function setHeadersProcessor(address _headersProcessor) external onlyOwner {
         headersProcessor = HeadersProcessor(_headersProcessor);
+    }
+
+    function setMessagesOriginChainId(uint256 _messagesOriginChainId) external onlyOwner {
         messagesOriginChainId = _messagesOriginChainId;
     }
 
