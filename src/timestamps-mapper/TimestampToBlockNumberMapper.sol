@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPLv3
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
 import {HeadersProcessor} from "../core/HeadersProcessor.sol";
@@ -31,7 +31,7 @@ contract TimestampToBlockNumberMapper {
 
     /// @notice struct passed as calldata, represents the binsearch path element
     struct BinsearchPathElement {
-        uint256 leafIndex;
+        uint256 elementIndex;
         bytes32 leafValue;
         bytes32[] inclusionProof;
     }
@@ -138,28 +138,32 @@ contract TimestampToBlockNumberMapper {
         uint256 remappedBlocksAmount = StatelessMmrHelpers.mmrSizeToLeafCount(searchAtSize);
         bytes32 remappedRoot = rootAtGivenSize;
 
-        uint256 currentElement = remappedBlocksAmount / 2;
+        uint256 lowerBound = 0;
+        uint256 upperBound = remappedBlocksAmount;
 
         for(uint256 i = 0; i < searchPath.length; i++) {
-            require(searchPath[i].leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
+            uint256 leafIndex = StatelessMmrHelpers.mmrIndexToLeafIndex(searchPath[i].elementIndex);
+            uint256 currentElement = (lowerBound + upperBound) / 2;
+            require(leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
             
             StatelessMmr.verifyProof(
-                searchPath[i].leafIndex,
+                searchPath[i].elementIndex,
                 searchPath[i].leafValue,
                 searchPath[i].inclusionProof,
                 peaks,
-                remappedBlocksAmount,
+                searchAtSize,
                 remappedRoot
             );
 
             if(timestamp < uint256(searchPath[i].leafValue)) {
-                currentElement = currentElement / 2;
+                require(currentElement >= 1, "ERR_SEARCH_BOUND_OUT_OF_RANGE");
+                upperBound = currentElement - 1;
             } else {
-                currentElement = currentElement + (currentElement / 2);
+                lowerBound = currentElement;
             }
         }
 
-        uint256 foundBlockNumber = mappers[searchedRemappingId].startsFromBlock + currentElement;
+        uint256 foundBlockNumber = mappers[searchedRemappingId].startsFromBlock + lowerBound;
         return foundBlockNumber;
     }
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPLv3
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
 import {Test} from "forge-std/Test.sol";
@@ -157,7 +157,7 @@ contract FactsRegistry_Test is Test {
         }
 
         bytes memory abiEncoded = vm.ffi(inputs);
-        (peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32[], bytes32[]));
+        (,peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
     function _getRlpBlockHeader(uint256 blockNumber) internal returns(bytes memory) {
