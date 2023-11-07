@@ -138,10 +138,12 @@ contract TimestampToBlockNumberMapper {
         uint256 remappedBlocksAmount = StatelessMmrHelpers.mmrSizeToLeafCount(searchAtSize);
         bytes32 remappedRoot = rootAtGivenSize;
 
-        uint256 currentElement = remappedBlocksAmount / 2;
+        uint256 lowerBound = 0;
+        uint256 upperBound = remappedBlocksAmount;
 
         for(uint256 i = 0; i < searchPath.length; i++) {
             uint256 leafIndex = StatelessMmrHelpers.mmrIndexToLeafIndex(searchPath[i].elementIndex);
+            uint256 currentElement = (lowerBound + upperBound) / 2;
             require(leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
             
             StatelessMmr.verifyProof(
@@ -154,13 +156,13 @@ contract TimestampToBlockNumberMapper {
             );
 
             if(timestamp < uint256(searchPath[i].leafValue)) {
-                currentElement = currentElement / 2;
+                upperBound = currentElement - 1;
             } else {
-                currentElement = currentElement + (currentElement % 2 == 0 ? currentElement / 2 : (currentElement + 1) / 2);
+                lowerBound = currentElement;
             }
         }
 
-        uint256 foundBlockNumber = mappers[searchedRemappingId].startsFromBlock + currentElement;
+        uint256 foundBlockNumber = mappers[searchedRemappingId].startsFromBlock + lowerBound;
         return foundBlockNumber;
     }
 
