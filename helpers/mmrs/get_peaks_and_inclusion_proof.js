@@ -23,11 +23,12 @@ async function main() {
   }
 
   const proof = await mmr.getProof(parseInt(leafIdToProve));
+  const root = await mmr.rootHash.get();
   // console.log("proof: ", proof);
 
   const abiEncodedResult = encoder.encode(
-    [abiEncodingType, abiEncodingType],
-    [proof.peaksHashes, proof.siblingsHashes]
+    ["bytes32", abiEncodingType, abiEncodingType],
+    [root, proof.peaksHashes, proof.siblingsHashes]
   );
   console.log(abiEncodedResult);
 }

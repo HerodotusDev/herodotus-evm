@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPLv3
 pragma solidity ^0.8.9;
 
-import {Test} from "forge-std/Test.sol";
+import "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {TimestampToBlockNumberMapper} from "../src/timestamps-mapper/TimestampToBlockNumberMapper.sol";
@@ -22,6 +22,7 @@ contract MockedHeadersProcessor {
 }
 
 contract TimestampToBlockNumberMapper_Test is Test {
+    using stdStorage for StdStorage;
     using Strings for uint256;
 
     TimestampToBlockNumberMapper mapper;
@@ -135,8 +136,52 @@ contract TimestampToBlockNumberMapper_Test is Test {
         assertEq(result, expectedCorrespondingBlockNumber);
     }
 
+    function test_binsearchBlockNumberByTimestampBiggerTree() public {
+        uint256 mapperId = _createMapper(7583800);
+        
+        uint256[] memory timestamps = new uint256[](5);
+        timestamps[0] = 1663065468;
+        timestamps[1] = 1663065480;
+        timestamps[2] = 1663065492;
+        timestamps[3] = 1663065504;
+        timestamps[4] = 1663065516;
+
+        (bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) = _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
+        uint256 mmrSize = 8;
+
+        stdstore
+            .target(address(mapper))
+            .sig(mapper.getMapperLatestSize.selector)
+            .with_key(mapperId)
+            .checked_write(bytes32(mmrSize));
+
+        stdstore
+            .target(address(mapper))
+            .sig(mapper.getMapperRootAtSize.selector)
+            .with_key(mapperId)
+            .with_key(mmrSize)
+            .checked_write(root);
+
+        // Ensure storage is set correctly
+        assertEq(mapper.getMapperLatestSize(mapperId), mmrSize);
+        assertEq(mapper.getMapperRootAtSize(mapperId, mmrSize), root);
+    }
+
     function _createMapper(uint256 startBlockNumber) internal returns (uint256) {
         return mapper.createMapper(startBlockNumber);
+    }
+
+    function _rootAndProofForMapperFedWithPredefinedTimestamps(uint256 elementId, uint256[] memory timestamps) internal returns(bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+        string[] memory inputs = new string[](3 + timestamps.length);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/mmrs/get_peaks_and_inclusion_proof.js";
+        inputs[2] = elementId.toString(); // Generate proof for leaf with id
+        for (uint256 i = 0; i < timestamps.length; i++) {
+            inputs[3 + i] = timestamps[i].toString();
+        }
+        bytes memory abiEncoded = vm.ffi(inputs);
+        (root, peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
+        return (root, peaks, inclusionProof);
     }
 
     function _peaksAndInclusionProofForTimestamp(uint256 elementId) internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
@@ -157,7 +202,7 @@ contract TimestampToBlockNumberMapper_Test is Test {
             inputs[3 + i] = timestamps[i].toString();
         }
         bytes memory abiEncoded = vm.ffi(inputs);
-        (peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32[], bytes32[]));
+        (,peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
     function _peaksAndInclusionProofForBlock(uint256 leafId) internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
@@ -179,7 +224,7 @@ contract TimestampToBlockNumberMapper_Test is Test {
         }
 
         bytes memory abiEncoded = vm.ffi(inputs);
-        (peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32[], bytes32[]));
+        (,peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
     function _getRlpBlockHeader(uint256 blockNumber) internal returns(bytes memory) {

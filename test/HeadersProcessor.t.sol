@@ -82,7 +82,7 @@ contract HeadersProcessor_Test is Test {
         }
 
         bytes memory abiEncoded = vm.ffi(inputs);
-        (bytes32[] memory peaks, bytes32[] memory inclusionProof) = abi.decode(abiEncoded, (bytes32[], bytes32[]));
+        (,bytes32[] memory peaks, bytes32[] memory inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
 
         // Grow the MMR starting from the blockhash already present in the MMR
         bytes memory ctx = abi.encode(
