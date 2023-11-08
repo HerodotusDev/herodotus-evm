@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import {AbstractL1MessagesSender} from "./AbstractL1MessagesSender.sol";
+import {AbstractMessagesSender} from "./AbstractMessagesSender.sol";
 import {IZkSyncMailbox} from "./interfaces/IZkSyncMailbox.sol";
 import {ISharpProofsAggregatorsFactory} from "../interfaces/ISharpProofsAggregatorsFactory.sol";
 import {IParentHashFetcher} from "./interfaces/IParentHashFetcher.sol";
 
 
-contract L1ToZkSyncMessagesSender is AbstractL1MessagesSender {
+contract L1ToZkSyncMessagesSender is AbstractMessagesSender {
     IZkSyncMailbox public immutable zksyncMailbox;
 
     constructor(
@@ -15,7 +15,7 @@ contract L1ToZkSyncMessagesSender is AbstractL1MessagesSender {
         IParentHashFetcher _parentHashFetcher,
         address _l2Target,
         IZkSyncMailbox _zksyncMailbox
-    ) AbstractL1MessagesSender(_proofsAggregatorsFactory, _parentHashFetcher, _l2Target) {
+    ) AbstractMessagesSender(_proofsAggregatorsFactory, _parentHashFetcher, _l2Target) {
         zksyncMailbox = _zksyncMailbox;
     }
 

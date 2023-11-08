@@ -6,7 +6,7 @@ import {ISharpProofsAggregatorsFactory} from "../interfaces/ISharpProofsAggregat
 import {IParentHashFetcher} from "./interfaces/IParentHashFetcher.sol";
 
 
-abstract contract AbstractL1MessagesSender {
+abstract contract AbstractMessagesSender {
     ISharpProofsAggregatorsFactory public immutable proofsAggregatorsFactory;
     IParentHashFetcher public immutable parentHashFetcher;
     address public immutable l2Target;
