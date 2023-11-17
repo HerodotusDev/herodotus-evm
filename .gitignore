@@ -6,6 +6,7 @@ node_modules/
 .env.mumbai
 .env
 broadcast
+.DS_Store
 
 artifacts-zk/
 cache-zk/
