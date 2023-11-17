@@ -19,7 +19,7 @@ Create a `.env` file based on `.env.example`, and then run:
 ```bash
 git clone git@github.com:HerodotusDev/herodotus-evm.git
 cd herodotus-evm
-yarn install
+pnpm install
 
 forge install
 forge test
