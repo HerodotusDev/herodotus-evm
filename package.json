@@ -1,31 +1,29 @@
 {
   "name": "herodotus-evm",
   "version": "1.0.0",
-  "main": "index.js",
   "repository": "git@github.com:HerodotusDev/herodotus-evm.git",
-  "author": "Marcello Bardus <marcellobardus8@gmail.com>",
-  "license": "MIT",
+  "author": "Herodotus Ltd <hello@herodotus.dev>",
+  "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "deploy": "pnpm run deploy:goerli & pnpm run deploy:mumbai & wait && pnpm run get-env",
+    "deploy": "pnpm run deploy:goerli & pnpm run deploy:mumbai & wait",
     "generic-deploy": "forge script script/Deployment.s.sol:Deployment --ffi --rpc-url $ALCHEMY_URL --etherscan-api-key $ETHERSCAN_API_KEY --private-key $PRIVATE_KEY --broadcast --verify -vvvvv",
     "deploy:goerli": "export $(grep -v '^#' .env.goerli | xargs) && pnpm run generic-deploy",
-    "deploy:mumbai": "export $(grep -v '^#' .env.mumbai | xargs) && pnpm run generic-deploy",
-    "get-env": "node helpers/get_env_from_latest_run.js"
+    "deploy:mumbai": "export $(grep -v '^#' .env.mumbai | xargs) && pnpm run generic-deploy"
   },
   "dependencies": {
     "@accumulators/hashers": "^4.2.3",
     "@accumulators/memory": "^4.2.3",
     "@accumulators/merkle-mountain-range": "^4.2.3",
-    "axios": "^1.4.0",
+    "axios": "^1.6.2",
     "ethers": "^5.7.2",
     "rlp": "2.2.7"
   },
   "devDependencies": {
     "custom-env": "^2.0.2",
-    "dotenv": "^16.1.4",
-    "only-allow": "^1.1.1",
-    "prettier": "^2.8.8",
-    "prettier-plugin-solidity": "^1.1.3"
+    "dotenv": "^16.3.1",
+    "only-allow": "^1.2.1",
+    "prettier": "^3.1.0",
+    "prettier-plugin-solidity": "^1.2.0"
   }
 }
