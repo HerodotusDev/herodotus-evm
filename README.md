@@ -8,7 +8,8 @@ Herodotus contracts for EVM chains.
 
 - Git
 - Node.js (^18.0)
-- Yarn
+- npm
+- pnpm
 - Foundry
 - Solc
 
@@ -19,9 +20,15 @@ Create a `.env` file based on `.env.example`, and then run:
 ```bash
 git clone git@github.com:HerodotusDev/herodotus-evm.git
 cd herodotus-evm
-yarn install
 
+# If you do not have pnpm, run `npm install -g pnpm`
+# Install dependencies
+pnpm install
+
+# Install libraries
 forge install
+
+# Running tests requires .env to be configured
 forge test
 ```
 
