@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
-
+pragma solidity ^0.8.19;
 
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
-
 
 contract HeadersProcessor {
     using EVMHeaderRLP for bytes;
@@ -15,7 +13,6 @@ contract HeadersProcessor {
     struct MMRInfo {
         /// @notice latestSize represents the latest size of the MMR
         uint256 latestSize;
-
         /// @notice mmrSizeToRoot maps the MMR size to the MMR root, that way we have automatic versioning
         mapping(uint256 => bytes32) mmrSizeToRoot;
     }
@@ -27,7 +24,7 @@ contract HeadersProcessor {
     /// @param detachedFromMmrId the ID of the MMR from which the new MMR was created
     /// @param detachedFromMmrIdAtSize the size of the MMR from which the new MMR was created
     event BranchCreatedFromElement(uint256 newMMRId, bytes32 newMMRRoot, uint256 newMMRSize, uint256 detachedFromMmrId, uint256 detachedFromMmrIdAtSize);
-    
+
     /// @notice emitted when a new MMR is created from an existing MMR
     /// @param newMMRId the ID of the new MMR
     /// @param detachedFromMmrId the ID of the MMR from which the new MMR was created
@@ -59,7 +56,7 @@ contract HeadersProcessor {
     uint256 public mmrsCount;
 
     /// @dev mapping of MMR ID to MMR info
-    mapping (uint256 => MMRInfo) public mmrs;
+    mapping(uint256 => MMRInfo) public mmrs;
 
     /// @param _messagesInboxAddr address of the MessagesInbox contract allowed to forward messages to this contract
     constructor(address _messagesInboxAddr) {
@@ -78,7 +75,6 @@ contract HeadersProcessor {
         receivedParentHashes[blockNumber] = parentHash;
     }
 
-    
     /// @notice Creates a new branch from an L1 message, the sent MMR info comes from an L1 aggregator
     /// @param mmrRoot the root of the MMR
     /// @param mmrSize the size of the MMR
@@ -105,21 +101,21 @@ contract HeadersProcessor {
     /// @param elementIndex the index of the element to take from the existing MMR
     /// @param initialBlockHash the block hash of the first block in the new MMR
     /// @param mmrPeaks the peaks of the new MMR
-    /// @param mmrIclusionProof the inclusion proof of the element in the existing MMR
+    /// @param mmrInclusionProof the inclusion proof of the element in the existing MMR
     function createBranchSingleElement(
         uint256 fromMmrId,
         uint256 mmrSize,
         uint256 elementIndex,
         bytes32 initialBlockHash,
         bytes32[] calldata mmrPeaks,
-        bytes32[] calldata mmrIclusionProof
+        bytes32[] calldata mmrInclusionProof
     ) external {
         // Verify that the given MMR at the given size has a non zero root
         bytes32 root = mmrs[fromMmrId].mmrSizeToRoot[mmrSize];
         require(root != bytes32(0), "ERR_MMR_DOES_NOT_EXIST");
 
         // Verify that the given element is in the MMR
-        StatelessMmr.verifyProof(elementIndex, initialBlockHash, mmrIclusionProof, mmrPeaks, mmrSize, root);
+        StatelessMmr.verifyProof(elementIndex, initialBlockHash, mmrInclusionProof, mmrPeaks, mmrSize, root);
 
         // === Create a new MMR === //
 
@@ -167,7 +163,6 @@ contract HeadersProcessor {
         emit BranchCreatedClone(newMMRId, mmrId, mmrSize);
     }
 
-
     /// @notice Processes a batch of blocks
     /// @param isReferenceHeaderAccumulated whether the reference header is accumulated or not
     /// @param mmrId the ID of the MMR to update
@@ -176,6 +171,9 @@ contract HeadersProcessor {
     ///    If the reference header is not accumulated, the context contains the block number of the reference header and the MMR peaks.
     /// @param headersSerialized the serialized headers of the batch
     function processBlocksBatch(bool isReferenceHeaderAccumulated, uint256 mmrId, bytes calldata ctx, bytes[] calldata headersSerialized) external {
+        require(headersSerialized.length > 0, "ERR_EMPTY_BATCH");
+        require(mmrs[mmrId].latestSize != 0, "ERR_MMR_DOES_NOT_EXIST");
+
         uint256 firstBlockInBatch;
         uint256 newMMRSize;
         bytes32 newMMRRoot;
@@ -190,7 +188,11 @@ contract HeadersProcessor {
 
     /// ========================= Internal functions ========================= //
 
-    function _processBlocksBatchNotAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
+    function _processBlocksBatchNotAccumulated(
+        uint256 treeId,
+        bytes memory ctx,
+        bytes[] memory headersSerialized
+    ) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
         (uint256 blockNumber, bytes32[] memory mmrPeaks) = abi.decode(ctx, (uint256, bytes32[]));
 
         bytes32 expectedHash = receivedParentHashes[blockNumber + 1];
@@ -207,14 +209,19 @@ contract HeadersProcessor {
         firstBlockInBatch = blockNumber;
     }
 
-    function _processBlocksBatchAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
-        (   uint256 referenceProofLeafIndex,
-            bytes32[] memory referenceProof,
-            bytes32[] memory mmrPeaks,
-            bytes memory referenceHeaderSerialized
-        ) = abi.decode(ctx, (uint256, bytes32[], bytes32[], bytes));
+    function _processBlocksBatchAccumulated(
+        uint256 treeId,
+        bytes memory ctx,
+        bytes[] memory headersSerialized
+    ) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
+        (uint256 referenceProofLeafIndex, bytes32[] memory referenceProof, bytes32[] memory mmrPeaks, bytes memory referenceHeaderSerialized) = abi.decode(
+            ctx,
+            (uint256, bytes32[], bytes32[], bytes)
+        );
 
         _validateParentBlockAndProofIntegrity(treeId, referenceProofLeafIndex, referenceProof, mmrPeaks, referenceHeaderSerialized);
+
+        require(referenceHeaderSerialized.getParentHash() == keccak256(headersSerialized[0]), "ERR_NON_CONSECUTIVE_ELEMENT");
 
         bytes32[] memory headersHashes = new bytes32[](headersSerialized.length);
         for (uint256 i = 1; i < headersSerialized.length; ++i) {
@@ -223,10 +230,10 @@ contract HeadersProcessor {
             headersHashes[i] = parentHash;
         }
         (newMMRSize, newMMRRoot) = _appendMultipleBlockhashesToMMR(headersHashes, mmrPeaks, treeId);
-        firstBlockInBatch = headersSerialized[0].getBlockNumber(); 
+        firstBlockInBatch = headersSerialized[0].getBlockNumber();
     }
 
-    function _appendMultipleBlockhashesToMMR(bytes32[] memory blockhashes, bytes32[] memory lastPeaks, uint256 mmrId) internal returns(uint256 newSize, bytes32 newRoot) {
+    function _appendMultipleBlockhashesToMMR(bytes32[] memory blockhashes, bytes32[] memory lastPeaks, uint256 mmrId) internal returns (uint256 newSize, bytes32 newRoot) {
         // Getting current mmr state for the treeId
         newSize = mmrs[mmrId].latestSize;
         newRoot = mmrs[mmrId].mmrSizeToRoot[newSize];
