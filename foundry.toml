@@ -4,6 +4,7 @@ out = 'out'
 libs = ['lib']
 ffi = true
 viaIR = true
+solc = "0.8.20"
 
 [rpc_endpoints]
 goerli = "${ALCHEMY_URL}"

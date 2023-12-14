@@ -7,14 +7,13 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TimestampToBlockNumberMapper} from "../src/timestamps-mapper/TimestampToBlockNumberMapper.sol";
 import {Types} from "../src/lib/Types.sol";
 
-
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
     bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
     uint256 constant SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 7;
 
-    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external view returns (bytes32) {
+    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external pure returns (bytes32) {
         require(mmrId == DEFAULT_TREE_ID, "ERR_INVALID_MMR_ID");
         require(mmrSize == SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1, "ERR_INVALID_MMR_SIZE");
         return ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1;
@@ -126,19 +125,13 @@ contract TimestampToBlockNumberMapper_Test is Test {
         searchPath[0] = firstSearchPathElement;
         searchPath[1] = secondSearchPathElement;
 
-        uint256 result = mapper.binsearchBlockNumberByTimestamp(
-            DEFAULT_TREE_ID,
-            4,
-            peaks,
-            queriedTimestamp,
-            searchPath
-        );
+        uint256 result = mapper.binsearchBlockNumberByTimestamp(DEFAULT_TREE_ID, 4, peaks, queriedTimestamp, searchPath);
         assertEq(result, expectedCorrespondingBlockNumber);
     }
 
     function test_binsearchBlockNumberByTimestampBiggerTree() public {
         uint256 mapperId = _createMapper(7583800);
-        
+
         uint256[] memory timestamps = new uint256[](5);
         timestamps[0] = 1663065468;
         timestamps[1] = 1663065480;
@@ -146,21 +139,12 @@ contract TimestampToBlockNumberMapper_Test is Test {
         timestamps[3] = 1663065504;
         timestamps[4] = 1663065516;
 
-        (bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) = _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
+        (bytes32 root /*bytes32[] memory peaks, bytes32[] memory inclusionProof*/, , ) = _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
         uint256 mmrSize = 8;
 
-        stdstore
-            .target(address(mapper))
-            .sig(mapper.getMapperLatestSize.selector)
-            .with_key(mapperId)
-            .checked_write(bytes32(mmrSize));
+        stdstore.target(address(mapper)).sig(mapper.getMapperLatestSize.selector).with_key(mapperId).checked_write(bytes32(mmrSize));
 
-        stdstore
-            .target(address(mapper))
-            .sig(mapper.getMapperRootAtSize.selector)
-            .with_key(mapperId)
-            .with_key(mmrSize)
-            .checked_write(root);
+        stdstore.target(address(mapper)).sig(mapper.getMapperRootAtSize.selector).with_key(mapperId).with_key(mmrSize).checked_write(root);
 
         // Ensure storage is set correctly
         assertEq(mapper.getMapperLatestSize(mapperId), mmrSize);
@@ -171,7 +155,10 @@ contract TimestampToBlockNumberMapper_Test is Test {
         return mapper.createMapper(startBlockNumber);
     }
 
-    function _rootAndProofForMapperFedWithPredefinedTimestamps(uint256 elementId, uint256[] memory timestamps) internal returns(bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+    function _rootAndProofForMapperFedWithPredefinedTimestamps(
+        uint256 elementId,
+        uint256[] memory timestamps
+    ) internal returns (bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         string[] memory inputs = new string[](3 + timestamps.length);
         inputs[0] = "node";
         inputs[1] = "./helpers/mmrs/get_peaks_and_inclusion_proof.js";
@@ -184,7 +171,7 @@ contract TimestampToBlockNumberMapper_Test is Test {
         return (root, peaks, inclusionProof);
     }
 
-    function _peaksAndInclusionProofForTimestamp(uint256 elementId) internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+    function _peaksAndInclusionProofForTimestamp(uint256 elementId) internal returns (bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         require(5 > elementId, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS");
         require(mapper.getMapperLatestRoot(0) == 0xb466a01610d46c5694c66b0b1afa741e0d1593c8dc975ee5384d032b2f68c211, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS");
 
@@ -202,10 +189,10 @@ contract TimestampToBlockNumberMapper_Test is Test {
             inputs[3 + i] = timestamps[i].toString();
         }
         bytes memory abiEncoded = vm.ffi(inputs);
-        (,peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
+        (, peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
-    function _peaksAndInclusionProofForBlock(uint256 leafId) internal returns(bytes32[] memory peaks, bytes32[] memory inclusionProof) {
+    function _peaksAndInclusionProofForBlock(uint256 leafId) internal returns (bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         require(6 > leafId, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_4_BLOCKS");
 
         bytes[] memory headersBatch = new bytes[](4);
@@ -224,10 +211,10 @@ contract TimestampToBlockNumberMapper_Test is Test {
         }
 
         bytes memory abiEncoded = vm.ffi(inputs);
-        (,peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
+        (, peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
-    function _getRlpBlockHeader(uint256 blockNumber) internal returns(bytes memory) {
+    function _getRlpBlockHeader(uint256 blockNumber) internal returns (bytes memory) {
         string[] memory inputs = new string[](3);
         inputs[0] = "node";
         inputs[1] = "./helpers/fetch_header_rlp.js";

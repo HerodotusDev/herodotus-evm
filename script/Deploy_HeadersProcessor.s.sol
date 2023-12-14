@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
 import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
-
+import {console2} from "forge-std/console2.sol";
 
 contract Deploy_HeadersProcessor is Script {
     function run() public {
@@ -13,6 +13,9 @@ contract Deploy_HeadersProcessor is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         HeadersProcessor headersProcessor = new HeadersProcessor(messagesInbox);
+
+        console2.log("HeadersProcessor deployed at address: %s", address(headersProcessor));
+
         vm.stopBroadcast();
     }
 }
