@@ -26,7 +26,7 @@ abstract contract AbstractMessagesSender {
     }
 
     function sendKeccakMMRTreeToL2(uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external {
-        address existingAggregatorAddr = proofsAggregatorsFactory.getAggregatorById(aggregatorId);
+        address existingAggregatorAddr = proofsAggregatorsFactory.aggregatorsById(aggregatorId);
         require(existingAggregatorAddr != address(0), "Unknown aggregator");
         ISharpProofsAggregator aggregator = ISharpProofsAggregator(existingAggregatorAddr);
 
