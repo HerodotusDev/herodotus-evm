@@ -7,6 +7,7 @@ import {L1ToOptimismMessagesSender} from "../src/core/x-rollup-messaging/L1ToOpt
 import {IOptimismCrossDomainMessenger} from "../src/core/x-rollup-messaging/interfaces/IOptimismCrossDomainMessenger.sol";
 import {IParentHashFetcher} from "../src/core/x-rollup-messaging/interfaces/IParentHashFetcher.sol";
 import {ISharpProofsAggregatorsFactory} from "../src/core/interfaces/ISharpProofsAggregatorsFactory.sol";
+import {console2} from "forge-std/console2.sol";
 
 contract Deploy_L1ToOptimismMessagesSender is Script {
     function run() public {
@@ -25,6 +26,8 @@ contract Deploy_L1ToOptimismMessagesSender is Script {
             l2Target,
             IOptimismCrossDomainMessenger(optimismMessenger)
         );
+
+        console2.log("L1ToOptimismMessagesSender address: %s", address(l1ToOptimismMessagesSender));
 
         vm.stopBroadcast();
     }

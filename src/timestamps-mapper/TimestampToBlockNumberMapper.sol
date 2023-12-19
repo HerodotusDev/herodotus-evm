@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {HeadersProcessor} from "../core/HeadersProcessor.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
@@ -9,7 +9,6 @@ import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-
 contract TimestampToBlockNumberMapper {
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize);
@@ -18,13 +17,10 @@ contract TimestampToBlockNumberMapper {
     struct MapperInfo {
         /// @notice initialized represents whether the mapper has been initialized or not, because 0 is a valid block number
         bool initialized;
-
         /// @notice startsFromBlock represents the block number from which the remapping MMR starts
         uint256 startsFromBlock;
-
         /// @notice latestSize represents the latest size of the MMR
         uint256 latestSize;
-
         /// @notice mmrSizeToRoot maps the MMR size to the MMR root, that way we have automatic versioning
         mapping(uint256 => bytes32) mmrSizeToRoot;
     }
@@ -94,8 +90,8 @@ contract TimestampToBlockNumberMapper {
         uint256 nextExpectedBlockAppended = mapperStartBlock + mapperLeavesCount;
 
         // Iterate over the headers with proofs
-        for(uint256 i = 0 ; i < headersWithProofs.length; i++) {    
-            uint256 elementsCount = headersWithProofs[i].mmrTreeSize;   
+        for (uint256 i = 0; i < headersWithProofs.length; i++) {
+            uint256 elementsCount = headersWithProofs[i].mmrTreeSize;
             bytes32 root = headersProcessor.getMMRRoot(headersWithProofs[i].treeId, elementsCount);
             require(root != bytes32(0), "ERR_INVALID_TREE_ID");
 
@@ -108,7 +104,7 @@ contract TimestampToBlockNumberMapper {
                 elementsCount,
                 root
             );
-            
+
             // Verify that the block number of the proven header is the next expected one
             uint256 blockNumber = EVMHeaderRLP.getBlockNumber(headersWithProofs[i].provenBlockHeader);
             require(blockNumber == nextExpectedBlockAppended, "ERR_UNEXPECTED_BLOCK_NUMBER");
@@ -130,7 +126,13 @@ contract TimestampToBlockNumberMapper {
         emit RemappedBlocksBatch(targettedMapId, mapperStartBlock, nextExpectedBlockAppended - 1, nextRoot, nextSize);
     }
 
-    function binsearchBlockNumberByTimestamp(uint256 searchedRemappingId, uint256 searchAtSize, bytes32[] calldata peaks, uint256 timestamp, BinsearchPathElement[] calldata searchPath) external view returns(uint256 blockNumber) {
+    function binsearchBlockNumberByTimestamp(
+        uint256 searchedRemappingId,
+        uint256 searchAtSize,
+        bytes32[] calldata peaks,
+        uint256 timestamp,
+        BinsearchPathElement[] calldata searchPath
+    ) external view returns (uint256 blockNumber) {
         // Ensure that remapper exists at the given id and size
         bytes32 rootAtGivenSize = mappers[searchedRemappingId].mmrSizeToRoot[searchAtSize];
         require(rootAtGivenSize != bytes32(0), "ERR_EMPTY_MMR_ROOT");
@@ -141,21 +143,14 @@ contract TimestampToBlockNumberMapper {
         uint256 lowerBound = 0;
         uint256 upperBound = remappedBlocksAmount;
 
-        for(uint256 i = 0; i < searchPath.length; i++) {
+        for (uint256 i = 0; i < searchPath.length; i++) {
             uint256 leafIndex = StatelessMmrHelpers.mmrIndexToLeafIndex(searchPath[i].elementIndex);
             uint256 currentElement = (lowerBound + upperBound) / 2;
             require(leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
-            
-            StatelessMmr.verifyProof(
-                searchPath[i].elementIndex,
-                searchPath[i].leafValue,
-                searchPath[i].inclusionProof,
-                peaks,
-                searchAtSize,
-                remappedRoot
-            );
 
-            if(timestamp < uint256(searchPath[i].leafValue)) {
+            StatelessMmr.verifyProof(searchPath[i].elementIndex, searchPath[i].leafValue, searchPath[i].inclusionProof, peaks, searchAtSize, remappedRoot);
+
+            if (timestamp < uint256(searchPath[i].leafValue)) {
                 require(currentElement >= 1, "ERR_SEARCH_BOUND_OUT_OF_RANGE");
                 upperBound = currentElement - 1;
             } else {
@@ -167,23 +162,23 @@ contract TimestampToBlockNumberMapper {
         return foundBlockNumber;
     }
 
-    function isMapperInitialized(uint256 mapperId) external view returns(bool) {
+    function isMapperInitialized(uint256 mapperId) external view returns (bool) {
         return mappers[mapperId].initialized;
     }
 
-    function getMapperStartsFromBlock(uint256 mapperId) external view returns(uint256) {
+    function getMapperStartsFromBlock(uint256 mapperId) external view returns (uint256) {
         return mappers[mapperId].startsFromBlock;
     }
 
-    function getMapperLatestSize(uint256 mapperId) external view returns(uint256) {
+    function getMapperLatestSize(uint256 mapperId) external view returns (uint256) {
         return mappers[mapperId].latestSize;
     }
 
-    function getMapperLatestRoot(uint256 mapperId) external view returns(bytes32) {
+    function getMapperLatestRoot(uint256 mapperId) external view returns (bytes32) {
         return mappers[mapperId].mmrSizeToRoot[mappers[mapperId].latestSize];
     }
 
-    function getMapperRootAtSize(uint256 mapperId, uint256 size) external view returns(bytes32) {
+    function getMapperRootAtSize(uint256 mapperId, uint256 size) external view returns (bytes32) {
         return mappers[mapperId].mmrSizeToRoot[size];
     }
 }

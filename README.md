@@ -49,7 +49,7 @@ However, the contracts are designed to be chain-agnostic and can be used with an
 
 ## Deployment
 
-`source .env; forge script script/<ScriptName>.s.sol:<ScriptName> --rpc-url $ALCHEMY_URL --broadcast --private-key $PRIVATE_KEY --verify --etherscan-api-key $ETHERSCAN_API_KEY`
+`pnpm run deploy`
 
 ## Documentation
 

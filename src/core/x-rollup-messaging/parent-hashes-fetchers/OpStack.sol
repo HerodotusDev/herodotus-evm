@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.19;
 
 import {IParentHashFetcher} from "../interfaces/IParentHashFetcher.sol";
 import {IL2OutputOracle} from "./interfaces/IL2OutputOracle.sol";
@@ -12,14 +12,9 @@ contract OpStackParentHashesFetcher is IParentHashFetcher {
 
     constructor(IL2OutputOracle _l2OutputOracle) {
         l2OutputOracle = _l2OutputOracle;
-    } 
+    }
 
-    function fetchParentHash(bytes memory ctx)
-        external
-        view
-        override
-        returns (uint256 fetchedForBlock, bytes32 parentHash)
-    {
+    function fetchParentHash(bytes memory ctx) external view override returns (uint256 fetchedForBlock, bytes32 parentHash) {
         (uint256 l2OutputIndex, bytes memory outputRootPreimage) = abi.decode(ctx, (uint256, bytes));
         IL2OutputOracle.OutputProposal memory outputProposal = l2OutputOracle.getL2Output(l2OutputIndex);
 

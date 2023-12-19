@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.19;
 
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {HeadersProcessor} from "./HeadersProcessor.sol";
-
 
 contract MessagesInbox is Ownable2Step {
     event ReceivedParentHash(uint256 originChainId, bytes32 blockhash, uint256 blockNumber);

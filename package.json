@@ -1,15 +1,12 @@
 {
   "name": "herodotus-evm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": "git@github.com:HerodotusDev/herodotus-evm.git",
   "author": "Herodotus Ltd <hello@herodotus.dev>",
   "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "deploy": "pnpm run deploy:goerli & pnpm run deploy:mumbai & wait",
-    "generic-deploy": "forge script script/Deployment.s.sol:Deployment --ffi --rpc-url $ALCHEMY_URL --etherscan-api-key $ETHERSCAN_API_KEY --private-key $PRIVATE_KEY --broadcast --verify -vvvvv",
-    "deploy:goerli": "export $(grep -v '^#' .env.goerli | xargs) && pnpm run generic-deploy",
-    "deploy:mumbai": "export $(grep -v '^#' .env.mumbai | xargs) && pnpm run generic-deploy"
+    "deploy": "source .env; forge script script/Deploy_L1ToL1MessagesSender.s.sol:Deploy_L1ToL1MessagesSender --rpc-url $ALCHEMY_URL --broadcast --verify"
   },
   "dependencies": {
     "@accumulators/hashers": "^4.2.3",
@@ -23,7 +20,7 @@
     "custom-env": "^2.0.2",
     "dotenv": "^16.3.1",
     "only-allow": "^1.2.1",
-    "prettier": "^3.1.0",
+    "prettier": "^3.1.1",
     "prettier-plugin-solidity": "^1.2.0"
   }
 }
