@@ -20,6 +20,8 @@ contract HeadersProcessor_Test is Test {
     EOA private commitmentsInbox;
     HeadersProcessor private headersProcessor;
 
+    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId);
+
     constructor() {
         commitmentsInbox = new EOA();
         headersProcessor = new HeadersProcessor(address(commitmentsInbox));
@@ -83,7 +85,13 @@ contract HeadersProcessor_Test is Test {
         // Register a new authenticated MMR (id 1)
         headersProcessor.createBranchFromMessage(initialMmrRoot, initialMmrSize, someAggregatorId);
 
+        assertEq(initialMmrSize, 1);
+
+        vm.expectEmit();
+        emit ProcessedBatch(7583802, 7583800, 0xd586772978d4f45e951c99bf3c7f3f56fd1f5707213b43924204d9d0769a2bd0, 7, DEFAULT_MMR_ID);
         headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
+
+        assertEq(StatelessMmrHelpers.mmrSizeToLeafCount(7), 4);
 
         // Encode the FFI inputs to get the peaks and inclusion proof
         bytes32[] memory hashesInTheMmr = new bytes32[](4);
@@ -111,6 +119,8 @@ contract HeadersProcessor_Test is Test {
         bytes[] memory nextHeadersBatch = new bytes[](1);
         nextHeadersBatch[0] = _getRlpBlockHeader(7583799);
 
+        vm.expectEmit();
+        emit ProcessedBatch(7583799, 7583799, 0x7d911eafd716098fd6d579059f0c670abed0bbb825c350fbbad907ab59c10a45, 8, DEFAULT_MMR_ID);
         headersProcessor.processBlocksBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
 
         uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
