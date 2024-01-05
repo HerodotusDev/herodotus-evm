@@ -9,3 +9,7 @@ broadcast
 
 artifacts-zk/
 cache-zk/
+
+cache_hardhat-zk
+
+.zksolc-libraries-cache

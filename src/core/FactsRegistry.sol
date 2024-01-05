@@ -2,8 +2,8 @@
 pragma solidity ^0.8.19;
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
-import {Lib_SecureMerkleTrie as SecureMerkleTrie} from "@optimism/libraries/trie/Lib_SecureMerkleTrie.sol";
-import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
+import {Lib_SecureMerkleTrie as SecureMerkleTrie} from "../lib/external/trie/Lib_SecureMerkleTrie.sol";
+import {Lib_RLPReader as RLPReader} from "../lib/external/rlp/Lib_RLPReader.sol";
 
 import {HeadersProcessor} from "./HeadersProcessor.sol";
 
