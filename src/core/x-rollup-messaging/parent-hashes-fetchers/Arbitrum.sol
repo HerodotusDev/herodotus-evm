@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {IParentHashFetcher} from "../interfaces/IParentHashFetcher.sol";
 import {IOutbox} from "./interfaces/IOutbox.sol";
+import {EVMHeaderRLP} from "../../../lib/EVMHeaderRLP.sol";
 
 /// @title ArbitrumParentHashesFetcher
 /// @notice Fetches parent hashes for the an Arbitrum chain, settling to the chain where this contract is deployed
@@ -15,24 +16,16 @@ contract ArbitrumParentHashesFetcher is IParentHashFetcher {
     }
 
     function fetchParentHash(bytes memory ctx) external view returns (uint256 fetchedForBlock, bytes32 parentHash) {
-        // (bytes32 outputRoot, address l2Sender,
-        // address to,
-        // uint256 l2Block,
-        // uint256 l1Block,
-        // uint256 l2Timestamp,
-        // uint256 value,
-        // uint256 path) = abi.decode(ctx, (bytes32, address, address, uint256, uint256, uint256, uint256, uint256));
-        // parentHash = outbox.roots(outputRoot);
-        // bytes32 item =  outbox.calculateItemHash(l2Sender, to, l2Block, l1Block, l2Timestamp, value, data);
-        // bytes32 merkleRoot = outbox.calculateMerkleRoot(proof, path, item);
-        // require(merkleRoot == outputRoot, "ERR_INVALID_OUTPUT_PROPOSAL");
-    
-        // fetchedForBlock =l2Block;
-        // parentHash = parentHash;
-        // TODO: proabably need some validation for block hash
-        (bytes32 outputRoot, uint256 l2Block) = abi.decode(ctx, (bytes32,uint256));
-        parentHash = outbox.roots(outputRoot);
-        fetchedForBlock = l2Block;
+        (bytes32 outputRoot, bytes memory rlpHeader) = abi.decode(ctx, (bytes32, bytes));
+        // Get the block hash from the outbox
+        bytes32 l2BlockHash = outbox.roots(outputRoot);
+        require(l2BlockHash != bytes32(0), "ERR_INVALID_OUTPUT_ROOT");
+        // Validate the header against the parent hash
+        require(keccak256(rlpHeader) == l2BlockHash, "ERR_INVALID_HEADER");
+        // Get the block number from the header
+        uint256 l2BlockNumber = EVMHeaderRLP.getBlockNumber(rlpHeader);
+        fetchedForBlock = l2BlockNumber + 1;
+        parentHash = l2BlockHash;
     }
 
     function chainId() external view override returns (uint256) {
