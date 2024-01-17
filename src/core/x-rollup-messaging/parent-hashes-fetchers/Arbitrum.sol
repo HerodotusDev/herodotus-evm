@@ -29,6 +29,7 @@ contract ArbitrumParentHashesFetcher is IParentHashFetcher {
     
         // fetchedForBlock =l2Block;
         // parentHash = parentHash;
+        // TODO: proabably need some validation for block hash
         (bytes32 outputRoot, uint256 l2Block) = abi.decode(ctx, (bytes32,uint256));
         parentHash = outbox.roots(outputRoot);
         fetchedForBlock = l2Block;
