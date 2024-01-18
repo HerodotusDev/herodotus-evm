@@ -9,9 +9,11 @@ import {IL2OutputOracle} from "./interfaces/IL2OutputOracle.sol";
 /// @notice for example if deployed on Ethereum, it will fetch parent hashes for Optimism/Base
 contract OpStackParentHashesFetcher is IParentHashFetcher {
     IL2OutputOracle public immutable l2OutputOracle;
+    uint256 public immutable chainId;
 
-    constructor(IL2OutputOracle _l2OutputOracle) {
+    constructor(IL2OutputOracle _l2OutputOracle, uint256 _chainId) {
         l2OutputOracle = _l2OutputOracle;
+        chainId = _chainId;
     }
 
     function fetchParentHash(bytes memory ctx)
@@ -35,9 +37,5 @@ contract OpStackParentHashesFetcher is IParentHashFetcher {
 
         fetchedForBlock = outputProposal.l2BlockNumber + 1;
         parentHash = latestBlockhash;
-    }
-
-    function chainId() external view override returns (uint256) {
-        return block.chainid;
     }
 }
