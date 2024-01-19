@@ -9,9 +9,11 @@ import {EVMHeaderRLP} from "../../../lib/EVMHeaderRLP.sol";
 /// @notice Fetches parent hashes for the an Arbitrum chain, settling to the chain where this contract is deployed
 /// @notice for example if deployed on Ethereum, it will fetch parent hashes for Arbitrum
 contract ArbitrumParentHashesFetcher is IParentHashFetcher {
+    using EVMHeaderRLP for bytes;
+
     IOutbox public immutable outbox;
     uint256 public immutable chainId;
-
+    
     constructor(IOutbox _outbox, uint256 _chainId) {
         outbox = _outbox;
         chainId = _chainId;
@@ -25,7 +27,7 @@ contract ArbitrumParentHashesFetcher is IParentHashFetcher {
         // Validate the header against the parent hash
         require(keccak256(rlpHeader) == l2BlockHash, "ERR_INVALID_HEADER");
         // Get the block number from the header
-        uint256 l2BlockNumber = EVMHeaderRLP.getBlockNumber(rlpHeader);
+        uint256 l2BlockNumber = rlpHeader.getBlockNumber();
         fetchedForBlock = l2BlockNumber + 1;
         parentHash = l2BlockHash;
     }
