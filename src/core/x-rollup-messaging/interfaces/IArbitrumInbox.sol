@@ -26,5 +26,4 @@ interface IArbitrumInbox {
         uint256 maxFeePerGas,
         bytes calldata data
     ) external payable returns (uint256);
-
 }
