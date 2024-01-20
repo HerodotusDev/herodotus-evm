@@ -47,17 +47,8 @@ contract IntegrationTest_Arbitrum is Script {
     }
 
     function testVerifyMessagesIsCorrect() public {
-        // bytes memory message = abi.encodePacked("Hello World");
-        // bytes32 messageHash = keccak256(message);
-        // bytes32 inboxTopHash = messagesInbox.inboxAccs(0);
-
-        // l1ToArbitrumMessagesSender = new L1ToArbitrumMessagesSender(address(messagesInbox));
-
-        // l1ToArbitrumMessagesSender.sendMessages(messageHash, inboxTopHash);
-
-        // bytes32 newInboxTopHash = messagesInbox.inboxAccs(0);
-
-        // assertEq(newInboxTopHash, messageHash, "Inbox top hash should be the message hash");
+        // To make a test in this way, Somehow `MessagesInbox` this contract should expose a function to verify the messages is correct ( right now we don't have it :/ )
+        // Also another consideration : Maybe need to wait for the message to be processed in L2
     }
 
     function run() public {
@@ -68,9 +59,9 @@ contract IntegrationTest_Arbitrum is Script {
         testSendMessages();
         vm.stopBroadcast();
 
-        // vm.selectFork(arbitrumSepoliaChainId);
-        // vm.startBroadcast(deployerPrivateKey);
-        // testVerifyMessagesIsCorrect();
-        // vm.stopBroadcast();
+        vm.selectFork(arbitrumSepoliaChainId);
+        vm.startBroadcast(deployerPrivateKey);
+        testVerifyMessagesIsCorrect();
+        vm.stopBroadcast();
     }
 }
