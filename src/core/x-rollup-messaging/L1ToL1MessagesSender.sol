@@ -24,7 +24,7 @@ contract L1ToL1MessagesSender is AbstractMessagesSender {
         // As the messages inbox is on L1, check that xDomainMsgGasData is empty
         require(_xDomainMsgGasData.length == 0, "Invalid gas data");
         // Simply invoke the messages inbox with the data
-        (bool success, ) = _l2Target.call(_data);
+        (bool success,) = _l2Target.call(_data);
         require(success, "L1ToL1MessagesSender: L1 call failed");
     }
 }

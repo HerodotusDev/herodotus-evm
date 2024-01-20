@@ -23,7 +23,6 @@ pragma solidity 0.8.20;
 // 16	baseFee
 // 17   withdrawalsRoot
 
-
 library EVMHeaderRLP {
     function nextElementJump(uint8 prefix) public pure returns (uint8) {
         if (prefix <= 128) {
