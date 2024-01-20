@@ -3,13 +3,13 @@ pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
 
-import {L1ToL1MessagesSender} from "../src/core/x-rollup-messaging/L1ToL1MessagesSender.sol";
-import {IParentHashFetcher} from "../src/core/x-rollup-messaging/interfaces/IParentHashFetcher.sol";
-import {ISharpProofsAggregatorsFactory} from "../src/core/interfaces/ISharpProofsAggregatorsFactory.sol";
+import {L1ToL1MessagesSender} from "src/core/x-rollup-messaging/L1ToL1MessagesSender.sol";
+import {IParentHashFetcher} from "src/core/x-rollup-messaging/interfaces/IParentHashFetcher.sol";
+import {ISharpProofsAggregatorsFactory} from "src/core/interfaces/ISharpProofsAggregatorsFactory.sol";
 
-import {MessagesInbox} from "../src/core/MessagesInbox.sol";
-import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
-import {FactsRegistry} from "../src/core/FactsRegistry.sol";
+import {MessagesInbox} from "src/core/MessagesInbox.sol";
+import {HeadersProcessor} from "src/core/HeadersProcessor.sol";
+import {FactsRegistry} from "src/core/FactsRegistry.sol";
 
 contract Deploy_L1ToL1MessagesSender is Script {
     function run() public {

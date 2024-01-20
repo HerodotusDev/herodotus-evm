@@ -8,8 +8,8 @@ import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
 
-import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
-import {EVMHeaderRLP} from "../src/lib/EVMHeaderRLP.sol";
+import {HeadersProcessor} from "src/core/HeadersProcessor.sol";
+import {EVMHeaderRLP} from "src/lib/EVMHeaderRLP.sol";
 
 contract HeadersProcessor_Test is Test {
     using Strings for uint256;

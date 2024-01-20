@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
-import {Multicall2} from "../src/core/external/Multicall2.sol";
+import {Multicall2} from "src/core/external/Multicall2.sol";
 import {console2} from "forge-std/console2.sol";
 
 contract Deploy_Multicall2 is Script {

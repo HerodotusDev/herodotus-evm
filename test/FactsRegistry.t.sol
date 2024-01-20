@@ -4,8 +4,8 @@ pragma solidity ^0.8.9;
 import {Test} from "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {FactsRegistry} from "../src/core/FactsRegistry.sol";
-import {Types} from "../src/lib/Types.sol";
+import {FactsRegistry} from "src/core/FactsRegistry.sol";
+import {Types} from "src/lib/Types.sol";
 
 uint256 constant DEFAULT_TREE_ID = 0;
 
