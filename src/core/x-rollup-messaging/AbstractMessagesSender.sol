@@ -10,7 +10,11 @@ abstract contract AbstractMessagesSender {
     IParentHashFetcher public immutable parentHashFetcher;
     address public immutable l2Target;
 
-    constructor(ISharpProofsAggregatorsFactory _proofsAggregatorsFactory, IParentHashFetcher _parentHashFetcher, address _l2Target) {
+    constructor(
+        ISharpProofsAggregatorsFactory _proofsAggregatorsFactory,
+        IParentHashFetcher _parentHashFetcher,
+        address _l2Target
+    ) {
         proofsAggregatorsFactory = _proofsAggregatorsFactory;
         parentHashFetcher = _parentHashFetcher;
         l2Target = _l2Target;
@@ -19,10 +23,17 @@ abstract contract AbstractMessagesSender {
     /// @notice Send an exact L1 parent hash to L2
     /// @param _parentHashFetcherCtx ABI encoded context for the parent hash fetcher
     /// @param _xDomainMsgGasData the gas data for the cross-domain message, depends on the destination L2
-    function sendExactParentHashToL2(bytes calldata _parentHashFetcherCtx, bytes calldata _xDomainMsgGasData) external {
-        (uint256 parentHashFetchedForBlock, bytes32 parentHash) = parentHashFetcher.fetchParentHash(_parentHashFetcherCtx);
+    function sendExactParentHashToL2(bytes calldata _parentHashFetcherCtx, bytes calldata _xDomainMsgGasData)
+        external
+    {
+        (uint256 parentHashFetchedForBlock, bytes32 parentHash) =
+            parentHashFetcher.fetchParentHash(_parentHashFetcherCtx);
         require(parentHash != bytes32(0), "ERR_INVALID_BLOCK_NUMBER");
-        _sendMessage(l2Target, abi.encodeWithSignature("receiveParentHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
+        _sendMessage(
+            l2Target,
+            abi.encodeWithSignature("receiveParentHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash),
+            _xDomainMsgGasData
+        );
     }
 
     function sendKeccakMMRTreeToL2(uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external {
@@ -37,7 +48,11 @@ abstract contract AbstractMessagesSender {
         require(mmrSize >= 1, "Invalid tree size");
         require(keccakMMRRoot != bytes32(0), "Invalid root (keccak)");
 
-        _sendMessage(l2Target, abi.encodeWithSignature("receiveKeccakMMR(uint256,uint256,bytes32)", aggregatorId, mmrSize, keccakMMRRoot), _xDomainMsgGasData);
+        _sendMessage(
+            l2Target,
+            abi.encodeWithSignature("receiveKeccakMMR(uint256,uint256,bytes32)", aggregatorId, mmrSize, keccakMMRRoot),
+            _xDomainMsgGasData
+        );
     }
 
     function _sendMessage(address _l2Target, bytes memory _data, bytes memory _xDomainMsgGasData) internal virtual;

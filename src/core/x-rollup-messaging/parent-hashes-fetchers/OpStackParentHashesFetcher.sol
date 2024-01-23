@@ -14,7 +14,12 @@ contract OpStackParentHashesFetcher is IParentHashFetcher {
         l2OutputOracle = _l2OutputOracle;
     }
 
-    function fetchParentHash(bytes memory ctx) external view override returns (uint256 fetchedForBlock, bytes32 parentHash) {
+    function fetchParentHash(bytes memory ctx)
+        external
+        view
+        override
+        returns (uint256 fetchedForBlock, bytes32 parentHash)
+    {
         (uint256 l2OutputIndex, bytes memory outputRootPreimage) = abi.decode(ctx, (uint256, bytes));
         IL2OutputOracle.OutputProposal memory outputProposal = l2OutputOracle.getL2Output(l2OutputIndex);
 
@@ -26,7 +31,7 @@ contract OpStackParentHashesFetcher is IParentHashFetcher {
         require(outputProposal.outputRoot == keccak256(outputRootPreimage), "ERR_INVALID_OUTPUT_PROPOSAL");
 
         // Decode the values from the preimage
-        (, , , bytes32 latestBlockhash) = abi.decode(outputRootPreimage, (bytes32, bytes32, bytes32, bytes32));
+        (,,, bytes32 latestBlockhash) = abi.decode(outputRootPreimage, (bytes32, bytes32, bytes32, bytes32));
 
         fetchedForBlock = outputProposal.l2BlockNumber + 1;
         parentHash = latestBlockhash;

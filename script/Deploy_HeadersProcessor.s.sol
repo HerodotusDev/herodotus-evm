@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
-import {HeadersProcessor} from "../src/core/HeadersProcessor.sol";
+import {HeadersProcessor} from "src/core/HeadersProcessor.sol";
 import {console2} from "forge-std/console2.sol";
 
 contract Deploy_HeadersProcessor is Script {

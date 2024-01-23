@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
-import {FactsRegistry} from "../src/core/FactsRegistry.sol";
+import {FactsRegistry} from "src/core/FactsRegistry.sol";
 import {console2} from "forge-std/console2.sol";
 
 contract Deploy_FactsRegistry is Script {

@@ -1,5 +1,12 @@
 [profile.default]
-src = 'src'
+remappings = [
+    "src/=src/",
+    "ds-test/=lib/forge-std/lib/ds-test/src/",
+    "forge-std/=lib/forge-std/src/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "solidity-mmr/=lib/solidity-mmr/src/",
+    "@optimism/libraries=src/lib/external",
+]
 out = 'out'
 libs = ['lib']
 ffi = true
