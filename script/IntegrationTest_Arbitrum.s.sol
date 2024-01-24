@@ -43,7 +43,7 @@ contract IntegrationTest_Arbitrum is Script {
         assert(blockhashFromHeader ==expectedBlockHash);
 
         /// Context for L1ToArbitrumMessagesSender contract
-        uint256 l2GasLimit = 0x1;
+        uint256 l2GasLimit = 0x1000000;
         uint256 maxFeePerGas = 0x1;
         uint256 maxSubmissionCost = 0x1;
         bytes memory _xDomainMsgGasData = abi.encode(l2GasLimit, maxFeePerGas, maxSubmissionCost);
