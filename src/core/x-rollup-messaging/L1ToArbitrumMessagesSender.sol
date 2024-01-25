@@ -18,11 +18,19 @@ contract L1ToArbitrumMessagesSender is AbstractMessagesSender {
         arbitrumInbox = _arbitrumInbox;
     }
 
-    function _sendMessage(address _l2Target, bytes memory _data, bytes memory _xDomainMsgGasData) internal override {
+    function testSendMessage(address _l2Target, bytes memory _data, bytes memory _xDomainMsgGasData) external payable {
         (uint256 l2GasLimit, uint256 maxFeePerGas, uint256 maxSubmissionCost) =
             abi.decode(_xDomainMsgGasData, (uint256, uint256, uint256));
         arbitrumInbox.createRetryableTicket(
             _l2Target, 0, maxSubmissionCost, msg.sender, msg.sender, l2GasLimit, maxFeePerGas, _data
+        );
+    }
+
+    function _sendMessage(address _l2Target, bytes memory _data, bytes memory _xDomainMsgGasData) internal override {
+        (uint256 l2GasLimit, uint256 maxFeePerGas, uint256 maxSubmissionCost) =
+            abi.decode(_xDomainMsgGasData, (uint256, uint256, uint256));
+        arbitrumInbox.createRetryableTicket(
+            _l2Target, 0, maxSubmissionCost, msg.sender, address(0), l2GasLimit, maxFeePerGas, _data
         );
     }
 }

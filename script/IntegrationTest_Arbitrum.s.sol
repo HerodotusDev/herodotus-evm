@@ -40,6 +40,7 @@ contract IntegrationTest_Arbitrum is Script {
         bytes32 expectedBlockHash = 0xe278dc4590304d2f0579689fb1bdd76a08ceac0e0e37bc426e1357e5d8395e1c;
         uint256 blockNumber = 0x50f5c;
         bytes memory rlpHeaderFromRPC = _getRlpBlockHeader(blockNumber);
+        console.logBytes(rlpHeaderFromRPC);
         bytes32 blockHashFromHeader = keccak256(rlpHeaderFromRPC);
 
         /// Verify if the block header is correct
@@ -48,14 +49,19 @@ contract IntegrationTest_Arbitrum is Script {
         console.logBytes(_parentHashFetcherCtx);
 
         /// Context for L1ToArbitrumMessagesSender contract
-        uint256 l2GasLimit = 0x1000000;
-        uint256 maxFeePerGas = 0x1;
-        uint256 maxSubmissionCost = 0x1;
+        uint256 l2GasLimit = 1_000_000;
+        uint256 maxFeePerGas = 10 gwei;
+        uint256 maxSubmissionCost = 0.1 ether;
         bytes memory _xDomainMsgGasData = abi.encode(l2GasLimit, maxFeePerGas, maxSubmissionCost);
         console.logBytes(_xDomainMsgGasData);
 
+        bytes memory data =
+            abi.encodeWithSelector(messagesInbox.receiveParentHashForBlock.selector, blockNumber, blockHashFromHeader);
+        console.logBytes(data);
         // Send messages to L2
-        l1ToArbitrumMessagesSender.sendExactParentHashToL2(_parentHashFetcherCtx, _xDomainMsgGasData);
+        console.logAddress(address(messagesInbox));
+        l1ToArbitrumMessagesSender.testSendMessage{value: 1 ether}(address(messagesInbox), data, _xDomainMsgGasData);
+        //l1ToArbitrumMessagesSender.sendExactParentHashToL2(_parentHashFetcherCtx, _xDomainMsgGasData);
     }
 
     function testVerifyMessagesIsCorrect() public {
