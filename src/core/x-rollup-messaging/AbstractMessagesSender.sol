@@ -25,6 +25,7 @@ abstract contract AbstractMessagesSender {
     /// @param _xDomainMsgGasData the gas data for the cross-domain message, depends on the destination L2
     function sendExactParentHashToL2(bytes calldata _parentHashFetcherCtx, bytes calldata _xDomainMsgGasData)
         external
+        payable
     {
         (uint256 parentHashFetchedForBlock, bytes32 parentHash) =
             parentHashFetcher.fetchParentHash(_parentHashFetcherCtx);
@@ -36,7 +37,7 @@ abstract contract AbstractMessagesSender {
         );
     }
 
-    function sendKeccakMMRTreeToL2(uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external {
+    function sendKeccakMMRTreeToL2(uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external payable {
         address existingAggregatorAddr = proofsAggregatorsFactory.aggregatorsById(aggregatorId);
         require(existingAggregatorAddr != address(0), "Unknown aggregator");
         ISharpProofsAggregator aggregator = ISharpProofsAggregator(existingAggregatorAddr);
