@@ -3,15 +3,15 @@ pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
 
-import {MessagesInboxOp} from "src/core/x-rollup-messaging/MessagesInboxOp.sol";
+import {OpMessagesInbox} from "src/core/x-rollup-messaging/inbox/OpMessagesInbox.sol";
 import {console2} from "forge-std/console2.sol";
 
-contract Deploy_MessagesInboxOp is Script {
+contract Deploy_OpMessagesInbox is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        MessagesInboxOp messagesInbox = new MessagesInboxOp();
+        OpMessagesInbox messagesInbox = new OpMessagesInbox();
 
         console2.log("MessagesInbox deployed at address: %s", address(messagesInbox));
 

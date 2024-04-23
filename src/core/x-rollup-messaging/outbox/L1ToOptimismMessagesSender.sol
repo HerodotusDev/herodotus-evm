@@ -2,9 +2,9 @@
 pragma solidity ^0.8.19;
 
 import {AbstractMessagesSender} from "./AbstractMessagesSender.sol";
-import {IOptimismCrossDomainMessenger} from "./interfaces/IOptimismCrossDomainMessenger.sol";
-import {ISharpProofsAggregatorsFactory} from "../interfaces/ISharpProofsAggregatorsFactory.sol";
-import {IParentHashFetcher} from "./interfaces/IParentHashFetcher.sol";
+import {IOptimismCrossDomainMessenger} from "../interfaces/IOptimismCrossDomainMessenger.sol";
+import {ISharpProofsAggregatorsFactory} from "../../interfaces/ISharpProofsAggregatorsFactory.sol";
+import {IParentHashFetcher} from "../interfaces/IParentHashFetcher.sol";
 
 contract L1ToOptimismMessagesSender is AbstractMessagesSender {
     IOptimismCrossDomainMessenger public immutable optimismMessenger;
