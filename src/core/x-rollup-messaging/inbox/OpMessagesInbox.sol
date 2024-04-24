@@ -9,6 +9,7 @@ interface IL1CrossDomainMessenger {
 
 contract OpMessagesInbox is AbstractMessagesInbox {
     IL1CrossDomainMessenger public constant MESSENGER = IL1CrossDomainMessenger(0x4200000000000000000000000000000000000007);
+
     constructor() {}
 
     function isCrossdomainCounterpart() public view override returns (bool) {

@@ -19,9 +19,7 @@ contract FactsRegistry {
     using RLPReader for bytes;
     using RLPReader for RLPReader.RLPItem;
 
-    event AccountProven(
-        address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash
-    );
+    event AccountProven(address account, uint256 blockNumber, uint256 nonce, uint256 balance, bytes32 codeHash, bytes32 storageHash);
     event StorageSlotProven(address account, uint256 blockNumber, bytes32 slot, bytes32 slotValue);
 
     uint8 private constant ACCOUNT_NONCE_INDEX = 0;
@@ -42,15 +40,9 @@ contract FactsRegistry {
         headersProcessor = HeadersProcessor(_headersProcessor);
     }
 
-    function proveAccount(
-        address account,
-        uint16 accountFieldsToSave,
-        Types.BlockHeaderProof calldata headerProof,
-        bytes calldata accountTrieProof
-    ) external {
+    function proveAccount(address account, uint16 accountFieldsToSave, Types.BlockHeaderProof calldata headerProof, bytes calldata accountTrieProof) external {
         // Verify the proof and decode the account fields
-        (uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) =
-            verifyAccount(account, headerProof, accountTrieProof);
+        (uint256 nonce, uint256 accountBalance, bytes32 codeHash, bytes32 storageRoot) = verifyAccount(account, headerProof, accountTrieProof);
 
         // Save the desired account properties to the storage
         if (accountFieldsToSave.readBitAtIndexFromRight(0)) {
@@ -60,8 +52,7 @@ contract FactsRegistry {
 
         if (accountFieldsToSave.readBitAtIndexFromRight(1)) {
             uint256 accountBalanceNullable = NullableStorageSlot.toNullable(accountBalance);
-            _accountField[account][headerProof.blockNumber][Types.AccountFields.BALANCE] =
-                bytes32(accountBalanceNullable);
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.BALANCE] = bytes32(accountBalanceNullable);
         }
 
         if (accountFieldsToSave.readBitAtIndexFromRight(2)) {
@@ -71,19 +62,15 @@ contract FactsRegistry {
 
         if (accountFieldsToSave.readBitAtIndexFromRight(3)) {
             uint256 storageRootNullable = NullableStorageSlot.toNullable(uint256(storageRoot));
-            _accountField[account][headerProof.blockNumber][Types.AccountFields.STORAGE_ROOT] =
-                bytes32(storageRootNullable);
+            _accountField[account][headerProof.blockNumber][Types.AccountFields.STORAGE_ROOT] = bytes32(storageRootNullable);
         }
 
         emit AccountProven(account, headerProof.blockNumber, nonce, accountBalance, codeHash, storageRoot);
     }
 
-    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes calldata storageSlotTrieProof)
-        external
-    {
+    function proveStorage(address account, uint256 blockNumber, bytes32 slot, bytes calldata storageSlotTrieProof) external {
         // Verify the proof and decode the slot value
-        uint256 slotValueNullable =
-            NullableStorageSlot.toNullable(uint256(verifyStorage(account, blockNumber, slot, storageSlotTrieProof)));
+        uint256 slotValueNullable = NullableStorageSlot.toNullable(uint256(verifyStorage(account, blockNumber, slot, storageSlotTrieProof)));
         _accountStorageSlotValues[account][blockNumber][slot] = bytes32(slotValueNullable);
         emit StorageSlotProven(account, blockNumber, slot, bytes32(NullableStorageSlot.fromNullable(slotValueNullable)));
     }
@@ -99,17 +86,12 @@ contract FactsRegistry {
         // Verify the account state proof
         bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
 
-        (bool doesAccountExist, bytes memory accountRLP) =
-            SecureMerkleTrie.get(abi.encodePacked(account), accountTrieProof, stateRoot);
+        (bool doesAccountExist, bytes memory accountRLP) = SecureMerkleTrie.get(abi.encodePacked(account), accountTrieProof, stateRoot);
         // Decode the account fields
         (nonce, accountBalance, storageRoot, codeHash) = _decodeAccountFields(doesAccountExist, accountRLP);
     }
 
-    function verifyStorage(address account, uint256 blockNumber, bytes32 slot, bytes calldata storageSlotTrieProof)
-        public
-        view
-        returns (bytes32 slotValue)
-    {
+    function verifyStorage(address account, uint256 blockNumber, bytes32 slot, bytes calldata storageSlotTrieProof) public view returns (bytes32 slotValue) {
         bytes32 storageRootRaw = _accountField[account][blockNumber][Types.AccountFields.STORAGE_ROOT];
         // Convert from nullable
         bytes32 storageRoot = bytes32(NullableStorageSlot.fromNullable(uint256(storageRootRaw)));
@@ -119,11 +101,7 @@ contract FactsRegistry {
         slotValue = slotValueRLP.toRLPItem().readBytes32();
     }
 
-    function accountField(address account, uint256 blockNumber, Types.AccountFields field)
-        external
-        view
-        returns (bytes32)
-    {
+    function accountField(address account, uint256 blockNumber, Types.AccountFields field) external view returns (bytes32) {
         bytes32 valueRaw = _accountField[account][blockNumber][field];
         // If value is null revert
         if (NullableStorageSlot.isNull(uint256(valueRaw))) {
@@ -132,11 +110,7 @@ contract FactsRegistry {
         return bytes32(NullableStorageSlot.fromNullable(uint256(valueRaw)));
     }
 
-    function accountStorageSlotValues(address account, uint256 blockNumber, bytes32 slot)
-        external
-        view
-        returns (bytes32)
-    {
+    function accountStorageSlotValues(address account, uint256 blockNumber, bytes32 slot) external view returns (bytes32) {
         bytes32 valueRaw = _accountStorageSlotValues[account][blockNumber][slot];
         // If value is null revert
         if (NullableStorageSlot.isNull(uint256(valueRaw))) {
@@ -151,24 +125,13 @@ contract FactsRegistry {
 
         bytes32 blockHeaderHash = keccak256(proof.provenBlockHeader);
 
-        StatelessMmr.verifyProof(
-            proof.blockProofLeafIndex,
-            blockHeaderHash,
-            proof.mmrElementInclusionProof,
-            proof.mmrPeaks,
-            proof.mmrTreeSize,
-            mmrRoot
-        );
+        StatelessMmr.verifyProof(proof.blockProofLeafIndex, blockHeaderHash, proof.mmrElementInclusionProof, proof.mmrPeaks, proof.mmrTreeSize, mmrRoot);
 
         uint256 actualBlockNumber = proof.provenBlockHeader.getBlockNumber();
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
-    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP)
-        internal
-        pure
-        returns (uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash)
-    {
+    function _decodeAccountFields(bool doesAccountExist, bytes memory accountRLP) internal pure returns (uint256 nonce, uint256 balance, bytes32 storageRoot, bytes32 codeHash) {
         if (!doesAccountExist) {
             return (0, 0, EMPTY_TRIE_ROOT_HASH, EMPTY_CODE_HASH);
         }
