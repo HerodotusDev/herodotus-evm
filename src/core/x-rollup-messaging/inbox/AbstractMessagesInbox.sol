@@ -4,9 +4,9 @@ pragma solidity ^0.8.19;
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {HeadersProcessor} from "./HeadersProcessor.sol";
+import {HeadersProcessor} from "../../HeadersProcessor.sol";
 
-contract MessagesInbox is Ownable2Step {
+abstract contract AbstractMessagesInbox is Ownable2Step {
     event ReceivedParentHash(uint256 originChainId, bytes32 blockhash, uint256 blockNumber);
 
     address public crossDomainMsgSender;
@@ -32,15 +32,14 @@ contract MessagesInbox is Ownable2Step {
         emit ReceivedParentHash(messagesOriginChainId, parentHash, blockNumber);
     }
 
-    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot)
-        external
-        onlyCrossdomainCounterpart
-    {
+    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot) external onlyCrossdomainCounterpart {
         headersProcessor.createBranchFromMessage(keccakMMRRoot, mmrSize, aggregatorId);
     }
 
+    function isCrossdomainCounterpart() public view virtual returns (bool);
+
     modifier onlyCrossdomainCounterpart() {
-        require(msg.sender == crossDomainMsgSender);
+        require(isCrossdomainCounterpart(), "Not authorized cross-domain message. Only cross-domain counterpart can call this function.");
         _;
     }
 }
