@@ -60,7 +60,7 @@ contract HeadersProcessor {
     /// @notice empty MMR size
     uint256 constant EMPTY_MMR_SIZE = 1;
     /// @notice empty MMR root - keccak256
-    bytes32 constant EMPTY_MMR_ROOT = bytes32(0x06759138078831011e3bc0b4a135af21c008dda64586363531697207fb5a2bae);
+    bytes32 constant EMPTY_MMR_ROOT = 0x5d8d23518dd388daa16925ff9475c5d1c06430d21e0422520d6a56402f42937b;
 
 
     /// @notice address of the MessagesInbox contract allowed to forward messages to this contract
