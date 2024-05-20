@@ -190,7 +190,7 @@ contract HeadersStore {
     ///    If the reference header is accumulated, the context contains the MMR proof and peaks.
     ///    If the reference header is not accumulated, the context contains the block number of the reference header and the MMR peaks.
     /// @param headersSerialized the serialized headers of the batch
-    function processBlocksBatch(
+    function processBatch(
         bool isReferenceHeaderAccumulated,
         uint256 mmrId,
         bytes calldata ctx,
@@ -204,10 +204,10 @@ contract HeadersStore {
         bytes32 newMMRRoot;
 
         if (isReferenceHeaderAccumulated) {
-            (firstBlockInBatch, newMMRSize, newMMRRoot) = _processBlocksBatchAccumulated(mmrId, ctx, headersSerialized);
+            (firstBlockInBatch, newMMRSize, newMMRRoot) = _processBatchAccumulated(mmrId, ctx, headersSerialized);
         } else {
             (firstBlockInBatch, newMMRSize, newMMRRoot) =
-                _processBlocksBatchNotAccumulated(mmrId, ctx, headersSerialized);
+                _processBatchNotAccumulated(mmrId, ctx, headersSerialized);
         }
         emit ProcessedBatch(
             firstBlockInBatch, firstBlockInBatch - headersSerialized.length + 1, newMMRRoot, newMMRSize, mmrId
@@ -216,7 +216,7 @@ contract HeadersStore {
 
     /// ========================= Internal functions ========================= //
 
-    function _processBlocksBatchAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized)
+    function _processBatchAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized)
         internal
         returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot)
     {
@@ -246,7 +246,7 @@ contract HeadersStore {
         firstBlockInBatch = headersSerialized[0].getBlockNumber();
     }
 
-    function _processBlocksBatchNotAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized)
+    function _processBatchNotAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized)
         internal
         returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot)
     {

@@ -58,7 +58,7 @@ contract HeadersStore_Test is Test {
         bytes[] memory headersBatch = new bytes[](1);
         headersBatch[0] = _getRlpBlockHeader(7583801);
 
-        headersStore.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583801, peaks), headersBatch);
+        headersStore.processBatch(false, DEFAULT_MMR_ID, abi.encode(7583801, peaks), headersBatch);
 
         uint256 newMMRSize = headersStore.getLatestMMRSize(DEFAULT_MMR_ID);
         assertEq(newMMRSize, 3);
@@ -95,7 +95,7 @@ contract HeadersStore_Test is Test {
         emit ProcessedBatch(
             7583802, 7583800, 0xd586772978d4f45e951c99bf3c7f3f56fd1f5707213b43924204d9d0769a2bd0, 7, DEFAULT_MMR_ID
         );
-        headersStore.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
+        headersStore.processBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
 
         assertEq(StatelessMmrHelpers.mmrSizeToLeafCount(7), 4);
 
@@ -130,7 +130,7 @@ contract HeadersStore_Test is Test {
         emit ProcessedBatch(
             7583799, 7583799, 0x7d911eafd716098fd6d579059f0c670abed0bbb825c350fbbad907ab59c10a45, 8, DEFAULT_MMR_ID
         );
-        headersStore.processBlocksBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
+        headersStore.processBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
 
         uint256 newMMRSize = headersStore.getLatestMMRSize(DEFAULT_MMR_ID);
         uint256 newLeafCount = StatelessMmrHelpers.mmrSizeToLeafCount(newMMRSize);
