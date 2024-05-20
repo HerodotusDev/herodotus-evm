@@ -1,5 +1,6 @@
 cache/
 out/
+zkout/
 node_modules/
 
 .env.goerli

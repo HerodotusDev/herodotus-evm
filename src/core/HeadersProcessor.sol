@@ -90,26 +90,23 @@ contract HeadersProcessor {
     }
 
     /// @notice Creates a new branch from an L1 message, the sent MMR info comes from an L1 aggregator
+    /// @param assignedId the ID of the MMR to create
     /// @param mmrRoot the root of the MMR
     /// @param mmrSize the size of the MMR
     /// @param aggregatorId the ID of the L1 aggregator that is the origin of the message content
-    function createBranchFromMessage(bytes32 mmrRoot, uint256 mmrSize, uint256 aggregatorId)
+    function createBranchFromMessage(uint256 assignedId, bytes32 mmrRoot, uint256 mmrSize, uint256 aggregatorId)
         external
         onlyMessagesInbox
     {
-        // 1. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount;
-        uint256 newMMRId = currentMMRsCount + 1;
+        // 1. Ensure the given ID is not already taken
+        require(mmrs[assignedId].latestSize == 0, "ERR_MMR_ID_ALREADY_TAKEN");
 
         // 2. Create a new MMR
-        mmrs[newMMRId].latestSize = mmrSize;
-        mmrs[newMMRId].mmrSizeToRoot[mmrSize] = mmrRoot;
+        mmrs[assignedId].latestSize = mmrSize;
+        mmrs[assignedId].mmrSizeToRoot[mmrSize] = mmrRoot;
 
-        // 3. Update the MMRs count
-        mmrsCount++;
-
-        // 4. Emit the event
-        emit BranchCreatedFromL1Message(newMMRId, mmrSize, mmrRoot, aggregatorId);
+        // 3. Emit the event
+        emit BranchCreatedFromL1Message(assignedId, mmrSize, mmrRoot, aggregatorId);
     }
 
     /// @notice Creates a new branch with only one element taken from an existing MMR

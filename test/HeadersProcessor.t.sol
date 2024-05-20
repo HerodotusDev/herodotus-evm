@@ -53,7 +53,7 @@ contract HeadersProcessor_Test is Test {
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersProcessor.createBranchFromMessage(initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersProcessor.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
 
         bytes[] memory headersBatch = new bytes[](1);
         headersBatch[0] = _getRlpBlockHeader(7583801);
@@ -87,7 +87,7 @@ contract HeadersProcessor_Test is Test {
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersProcessor.createBranchFromMessage(initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersProcessor.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
 
         assertEq(initialMmrSize, 1);
 
