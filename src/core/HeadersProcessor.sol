@@ -57,6 +57,12 @@ contract HeadersProcessor {
         uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId
     );
 
+    /// @notice empty MMR size
+    uint256 constant EMPTY_MMR_SIZE = 1;
+    /// @notice empty MMR root - keccak256
+    bytes32 constant EMPTY_MMR_ROOT = bytes32(0x06759138078831011e3bc0b4a135af21c008dda64586363531697207fb5a2bae);
+
+
     /// @notice address of the MessagesInbox contract allowed to forward messages to this contract
     address public immutable messagesInboxAddr;
 
@@ -99,7 +105,7 @@ contract HeadersProcessor {
         onlyMessagesInbox
     {
         // 1. Ensure the given ID is not already taken
-        require(mmrs[assignedId].latestSize == 0, "ERR_MMR_ID_ALREADY_TAKEN");
+        require(mmrs[assignedId].latestSize == 0 && assignedId != 0, "ERR_MMR_ID_ALREADY_TAKEN");
 
         // 2. Create a new MMR
         mmrs[assignedId].latestSize = mmrSize;
@@ -136,7 +142,7 @@ contract HeadersProcessor {
         // === Create a new MMR === //
 
         // 1. Ensure the given ID is not already taken
-        require(mmrs[assignedId].latestSize == 0, "ERR_MMR_ID_ALREADY_TAKEN");
+        require(mmrs[assignedId].latestSize == 0 && assignedId != 0, "ERR_MMR_ID_ALREADY_TAKEN");
 
         // 2. Create a new MMR
         bytes32[] memory emptyPeaks = new bytes32[](0);
@@ -151,28 +157,30 @@ contract HeadersProcessor {
     }
 
     /// @notice Creates a new branch from an existing MMR, effectively cloning it
+    /// @param assignedId the ID of the new MMR
     /// @param mmrId the ID of the MMR from which the new MMR will be created
     /// @param mmrSize size at which the MMR will be copied
-    function createBranchFromExisting(uint256 mmrId, uint256 mmrSize) external {
+    function createBranchFromExisting(uint256 assignedId, uint256 mmrId, uint256 mmrSize) external {
         // 1. Load existing MMR data
         bytes32 root = mmrs[mmrId].mmrSizeToRoot[mmrSize];
 
         // 2. Ensure the given MMR is not empty
         require(root != bytes32(0), "ERR_MMR_DOES_NOT_EXIST");
 
-        // 3. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount;
-        uint256 newMMRId = currentMMRsCount + 1;
+        // 3. Ensure the given ID is not already taken
+        require(mmrs[assignedId].latestSize == 0, "ERR_MMR_ID_ALREADY_TAKEN");
 
         // 4. Copy the existing MMR data to the new MMR
-        mmrs[newMMRId].latestSize = mmrSize;
-        mmrs[newMMRId].mmrSizeToRoot[mmrSize] = root;
+        if (assignedId == 0) {
+            mmrs[assignedId].latestSize = EMPTY_MMR_SIZE;
+            mmrs[assignedId].mmrSizeToRoot[EMPTY_MMR_SIZE] = EMPTY_MMR_ROOT;
+        } else {
+            mmrs[assignedId].latestSize = mmrSize;
+            mmrs[assignedId].mmrSizeToRoot[mmrSize] = root;
+        }
 
-        // 5. Update the MMRs count
-        mmrsCount++;
-
-        // 6. Emit the event
-        emit BranchCreatedClone(newMMRId, root, mmrId, mmrSize);
+        // 5. Emit the event
+        emit BranchCreatedClone(assignedId, root, mmrId, mmrSize);
     }
 
     /// @notice Processes a batch of blocks
