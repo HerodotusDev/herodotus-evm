@@ -110,6 +110,7 @@ contract HeadersProcessor {
     }
 
     /// @notice Creates a new branch with only one element taken from an existing MMR
+    /// @param assignedId the ID of the new MMR
     /// @param fromMmrId the ID of the MMR from which the new MMR will be created
     /// @param mmrSize the size of the MMR from which the new MMR will be created
     /// @param elementIndex the index of the element to take from the existing MMR
@@ -117,6 +118,7 @@ contract HeadersProcessor {
     /// @param mmrPeaks the peaks of the new MMR
     /// @param mmrInclusionProof the inclusion proof of the element in the existing MMR
     function createBranchSingleElement(
+        uint256 assignedId,
         uint256 fromMmrId,
         uint256 mmrSize,
         uint256 elementIndex,
@@ -133,23 +135,19 @@ contract HeadersProcessor {
 
         // === Create a new MMR === //
 
-        // 1. Assign an ID to the new MMR
-        uint256 currentMMRsCount = mmrsCount;
-        uint256 newMMRId = currentMMRsCount + 1;
+        // 1. Ensure the given ID is not already taken
+        require(mmrs[assignedId].latestSize == 0, "ERR_MMR_ID_ALREADY_TAKEN");
 
         // 2. Create a new MMR
         bytes32[] memory emptyPeaks = new bytes32[](0);
         (uint256 newMMRSize, bytes32 newMMRRoot) = StatelessMmr.append(initialBlockHash, emptyPeaks, 0, bytes32(0));
 
         // 3. Update the MMRs mapping
-        mmrs[newMMRId].latestSize = newMMRSize;
-        mmrs[newMMRId].mmrSizeToRoot[newMMRSize] = newMMRRoot;
+        mmrs[assignedId].latestSize = newMMRSize;
+        mmrs[assignedId].mmrSizeToRoot[newMMRSize] = newMMRRoot;
 
-        // 4. Update the MMRs count
-        mmrsCount++;
-
-        // 5. Emit the event
-        emit BranchCreatedFromElement(newMMRId, newMMRRoot, newMMRSize, fromMmrId, mmrSize);
+        // 4. Emit the event
+        emit BranchCreatedFromElement(assignedId, newMMRRoot, newMMRSize, fromMmrId, mmrSize);
     }
 
     /// @notice Creates a new branch from an existing MMR, effectively cloning it
