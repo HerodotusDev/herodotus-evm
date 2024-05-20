@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 import "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {TimestampToBlockNumberMapper} from "src/timestamps-mapper/TimestampToBlockNumberMapper.sol";
+import {TimestampRemapper} from "src/remappers/TimestampRemapper.sol";
 import {Types} from "src/lib/Types.sol";
 
 uint256 constant DEFAULT_TREE_ID = 0;
@@ -21,36 +21,36 @@ contract MockedHeadersProcessor {
     }
 }
 
-contract TimestampToBlockNumberMapper_Test is Test {
+contract TimestampRemapper_Test is Test {
     using stdStorage for StdStorage;
     using Strings for uint256;
 
-    TimestampToBlockNumberMapper mapper;
+    TimestampRemapper remapper;
 
     constructor() {
         MockedHeadersProcessor mockedHeadersProcessor = new MockedHeadersProcessor();
-        mapper = new TimestampToBlockNumberMapper(address(mockedHeadersProcessor));
+        remapper = new TimestampRemapper(address(mockedHeadersProcessor));
     }
 
     function test_createMapper() public {
         uint256 startBlockNumber = 7583801;
-        uint256 mapperId = _createMapper(7583801);
+        uint256 mapperId = _createRemapper(7583801);
 
-        uint256 newMappersCount = mapper.mappersCount();
+        uint256 newMappersCount = remapper.mappersCount();
         assertEq(newMappersCount, 1);
 
-        bool isInitialized = mapper.isMapperInitialized(mapperId);
+        bool isInitialized = remapper.isMapperInitialized(mapperId);
         assertTrue(isInitialized);
 
-        uint256 setStartBlockNumber = mapper.getMapperStartsFromBlock(mapperId);
+        uint256 setStartBlockNumber = remapper.getMapperStartsFromBlock(mapperId);
         assertEq(setStartBlockNumber, startBlockNumber);
 
-        uint256 latestSize = mapper.getMapperLatestSize(mapperId);
+        uint256 latestSize = remapper.getMapperLatestSize(mapperId);
         assertEq(latestSize, 0);
     }
 
     function test_reindexBatch() public {
-        uint256 mapperId = _createMapper(7583800);
+        uint256 mapperId = _createRemapper(7583800);
 
         (bytes32[] memory headersMMRPeaks, bytes32[] memory block7583800MMRInclusionProof) =
             _peaksAndInclusionProofForBlock(4);
@@ -91,9 +91,9 @@ contract TimestampToBlockNumberMapper_Test is Test {
         headersBatch[2] = header_x_plus_two_proof;
 
         bytes32[] memory emptyPeaks = new bytes32[](0);
-        mapper.reindexBatch(mapperId, emptyPeaks, headersBatch);
+        remapper.reindexBatch(mapperId, emptyPeaks, headersBatch);
 
-        uint256 newMMRSize = mapper.getMapperLatestSize(mapperId);
+        uint256 newMMRSize = remapper.getMapperLatestSize(mapperId);
         assertEq(newMMRSize, 4);
     }
 
@@ -113,22 +113,22 @@ contract TimestampToBlockNumberMapper_Test is Test {
             _peaksAndInclusionProofForTimestamp(4);
         assertEq(keccak256(abi.encode(peaks)), keccak256(abi.encode(newPeaks)));
 
-        TimestampToBlockNumberMapper.BinsearchPathElement memory firstSearchPathElement =
-            TimestampToBlockNumberMapper.BinsearchPathElement(2, bytes32(timestamps[1]), firstElementInclusionProof);
-        TimestampToBlockNumberMapper.BinsearchPathElement memory secondSearchPathElement =
-            TimestampToBlockNumberMapper.BinsearchPathElement(4, bytes32(timestamps[2]), secondElementInclusionProof);
+        TimestampRemapper.BinsearchPathElement memory firstSearchPathElement =
+            TimestampRemapper.BinsearchPathElement(2, bytes32(timestamps[1]), firstElementInclusionProof);
+        TimestampRemapper.BinsearchPathElement memory secondSearchPathElement =
+            TimestampRemapper.BinsearchPathElement(4, bytes32(timestamps[2]), secondElementInclusionProof);
 
-        TimestampToBlockNumberMapper.BinsearchPathElement[] memory searchPath =
-            new TimestampToBlockNumberMapper.BinsearchPathElement[](2);
+        TimestampRemapper.BinsearchPathElement[] memory searchPath =
+            new TimestampRemapper.BinsearchPathElement[](2);
         searchPath[0] = firstSearchPathElement;
         searchPath[1] = secondSearchPathElement;
 
-        uint256 result = mapper.binsearchBlockNumberByTimestamp(DEFAULT_TREE_ID, 4, peaks, queriedTimestamp, searchPath);
+        uint256 result = remapper.binsearchBlockNumberByTimestamp(DEFAULT_TREE_ID, 4, peaks, queriedTimestamp, searchPath);
         assertEq(result, expectedCorrespondingBlockNumber);
     }
 
     function test_binsearchBlockNumberByTimestampBiggerTree() public {
-        uint256 mapperId = _createMapper(7583800);
+        uint256 mapperId = _createRemapper(7583800);
 
         uint256[] memory timestamps = new uint256[](5);
         timestamps[0] = 1663065468;
@@ -141,20 +141,20 @@ contract TimestampToBlockNumberMapper_Test is Test {
             _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
         uint256 mmrSize = 8;
 
-        stdstore.target(address(mapper)).sig(mapper.getMapperLatestSize.selector).with_key(mapperId).checked_write(
+        stdstore.target(address(remapper)).sig(remapper.getMapperLatestSize.selector).with_key(mapperId).checked_write(
             bytes32(mmrSize)
         );
 
-        stdstore.target(address(mapper)).sig(mapper.getMapperRootAtSize.selector).with_key(mapperId).with_key(mmrSize)
+        stdstore.target(address(remapper)).sig(remapper.getMapperRootAtSize.selector).with_key(mapperId).with_key(mmrSize)
             .checked_write(root);
 
         // Ensure storage is set correctly
-        assertEq(mapper.getMapperLatestSize(mapperId), mmrSize);
-        assertEq(mapper.getMapperRootAtSize(mapperId, mmrSize), root);
+        assertEq(remapper.getMapperLatestSize(mapperId), mmrSize);
+        assertEq(remapper.getMapperRootAtSize(mapperId, mmrSize), root);
     }
 
-    function _createMapper(uint256 startBlockNumber) internal returns (uint256) {
-        return mapper.createMapper(startBlockNumber);
+    function _createRemapper(uint256 startBlockNumber) internal returns (uint256) {
+        return remapper.createMapper(startBlockNumber);
     }
 
     function _rootAndProofForMapperFedWithPredefinedTimestamps(uint256 elementId, uint256[] memory timestamps)
@@ -179,7 +179,7 @@ contract TimestampToBlockNumberMapper_Test is Test {
     {
         require(5 > elementId, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS");
         require(
-            mapper.getMapperLatestRoot(0) == 0xb466a01610d46c5694c66b0b1afa741e0d1593c8dc975ee5384d032b2f68c211,
+            remapper.getMapperLatestRoot(0) == 0xb466a01610d46c5694c66b0b1afa741e0d1593c8dc975ee5384d032b2f68c211,
             "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS"
         );
 

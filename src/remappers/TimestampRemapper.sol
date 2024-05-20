@@ -9,7 +9,7 @@ import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract TimestampToBlockNumberMapper {
+contract TimestampRemapper {
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(
         uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize
