@@ -5,7 +5,7 @@ import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
-contract HeadersProcessor {
+contract HeadersStore {
     using EVMHeaderRLP for bytes;
 
     /// @notice This struct represents a Merkle Mountain Range accumulating provably valid block hash
@@ -75,7 +75,7 @@ contract HeadersProcessor {
     /// @dev mapping of MMR ID to MMR info
     mapping(uint256 => MMRInfo) public mmrs;
 
-    event ParentHashReceived(uint256 blockNumber, bytes32 parentHash);
+    event HashReceived(uint256 blockNumber, bytes32 parentHash);
 
     /// @param _messagesInboxAddr address of the MessagesInbox contract allowed to forward messages to this contract
     constructor(address _messagesInboxAddr) {
@@ -90,9 +90,9 @@ contract HeadersProcessor {
 
     /// @notice Called when a message is sent from L1 to L2
     /// @notice saves the parent hash of the block number in the contract storage
-    function receiveParentHash(uint256 blockNumber, bytes32 parentHash) external onlyMessagesInbox {
+    function receiveHash(uint256 blockNumber, bytes32 parentHash) external onlyMessagesInbox {
         receivedParentHashes[blockNumber] = parentHash;
-        emit ParentHashReceived(blockNumber, parentHash);
+        emit HashReceived(blockNumber, parentHash);
     }
 
     /// @notice Creates a new branch from an L1 message, the sent MMR info comes from an L1 aggregator

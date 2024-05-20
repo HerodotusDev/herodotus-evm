@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import {HeadersProcessor} from "../core/HeadersProcessor.sol";
+import {HeadersStore} from "../core/HeadersStore.sol";
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {Types} from "../lib/Types.sol";
 
@@ -34,11 +34,8 @@ contract TimestampToBlockNumberMapper {
         bytes32[] inclusionProof;
     }
 
-    /// @notice offset used to calculate memory keys in order to avoid collisions when memoizing
-    uint256 private _HASHMAP_KEY_OFFSET = 0xDEFACED00000;
-
     /// @notice headersProcessor is the address of the headers processor contract
-    HeadersProcessor public immutable headersProcessor;
+    HeadersStore public immutable headersStore;
 
     /// @notice mappersCount represents the number of mappers created
     uint256 public mappersCount;
@@ -47,9 +44,9 @@ contract TimestampToBlockNumberMapper {
     mapping(uint256 => MapperInfo) public mappers;
 
     /// @notice constructor
-    /// @param _headersProcessor the address of the headers processor contract
-    constructor(address _headersProcessor) {
-        headersProcessor = HeadersProcessor(_headersProcessor);
+    /// @param _headersStore the address of the headers processor contract
+    constructor(address _headersStore) {
+        headersStore = HeadersStore(_headersStore);
     }
 
     /// @notice creates a new mapper
@@ -98,7 +95,7 @@ contract TimestampToBlockNumberMapper {
         // Iterate over the headers with proofs
         for (uint256 i = 0; i < headersWithProofs.length; i++) {
             uint256 elementsCount = headersWithProofs[i].mmrTreeSize;
-            bytes32 root = headersProcessor.getMMRRoot(headersWithProofs[i].treeId, elementsCount);
+            bytes32 root = headersStore.getMMRRoot(headersWithProofs[i].treeId, elementsCount);
             require(root != bytes32(0), "ERR_INVALID_TREE_ID");
 
             // Verify the proof against the MMR root

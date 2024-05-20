@@ -22,7 +22,7 @@ abstract contract AbstractMessagesSender {
     function sendExactParentHashToL2(bytes calldata _parentHashFetcherCtx, bytes calldata _xDomainMsgGasData) external payable {
         (uint256 parentHashFetchedForBlock, bytes32 parentHash) = parentHashFetcher.fetchParentHash(_parentHashFetcherCtx);
         require(parentHash != bytes32(0), "ERR_INVALID_BLOCK_NUMBER");
-        _sendMessage(l2Target, abi.encodeWithSignature("receiveParentHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
+        _sendMessage(l2Target, abi.encodeWithSignature("receiveHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
     }
 
     function sendKeccakMMRTreeToL2(uint256 assignedId, uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external payable {

@@ -8,17 +8,17 @@ import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
 
-import {HeadersProcessor} from "src/core/HeadersProcessor.sol";
+import {HeadersStore} from "src/core/HeadersStore.sol";
 import {EVMHeaderRLP} from "src/lib/EVMHeaderRLP.sol";
 
-contract HeadersProcessor_Test is Test {
+contract HeadersStore_Test is Test {
     using Strings for uint256;
     using EVMHeaderRLP for bytes;
 
     uint256 constant DEFAULT_MMR_ID = 1;
 
     EOA private commitmentsInbox;
-    HeadersProcessor private headersProcessor;
+    HeadersStore private headersStore;
 
     event ProcessedBatch(
         uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId
@@ -26,17 +26,17 @@ contract HeadersProcessor_Test is Test {
 
     constructor() {
         commitmentsInbox = new EOA();
-        headersProcessor = new HeadersProcessor(address(commitmentsInbox));
+        headersStore = new HeadersStore(address(commitmentsInbox));
     }
 
-    function test_receiveParentHash() public {
+    function test_receiveHash() public {
         bytes32 parentHash = 0x1234567890123456789012345678901234567890123456789012345678901234;
 
         // Pretend to be the MessagesInbox contract
         vm.prank(address(commitmentsInbox));
-        headersProcessor.receiveParentHash(1, parentHash);
+        headersStore.receiveHash(1, parentHash);
 
-        bytes32 actualParentHash = headersProcessor.receivedParentHashes(1);
+        bytes32 actualParentHash = headersStore.receivedParentHashes(1);
         assertEq(actualParentHash, parentHash);
     }
 
@@ -53,17 +53,17 @@ contract HeadersProcessor_Test is Test {
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersProcessor.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersStore.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
 
         bytes[] memory headersBatch = new bytes[](1);
         headersBatch[0] = _getRlpBlockHeader(7583801);
 
-        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583801, peaks), headersBatch);
+        headersStore.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583801, peaks), headersBatch);
 
-        uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
+        uint256 newMMRSize = headersStore.getLatestMMRSize(DEFAULT_MMR_ID);
         assertEq(newMMRSize, 3);
 
-        bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
+        bytes32 mmrRoot = headersStore.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
         assertFalse(mmrRoot == bytes32(0));
     }
 
@@ -87,7 +87,7 @@ contract HeadersProcessor_Test is Test {
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersProcessor.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersStore.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
 
         assertEq(initialMmrSize, 1);
 
@@ -95,7 +95,7 @@ contract HeadersProcessor_Test is Test {
         emit ProcessedBatch(
             7583802, 7583800, 0xd586772978d4f45e951c99bf3c7f3f56fd1f5707213b43924204d9d0769a2bd0, 7, DEFAULT_MMR_ID
         );
-        headersProcessor.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
+        headersStore.processBlocksBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
 
         assertEq(StatelessMmrHelpers.mmrSizeToLeafCount(7), 4);
 
@@ -130,13 +130,13 @@ contract HeadersProcessor_Test is Test {
         emit ProcessedBatch(
             7583799, 7583799, 0x7d911eafd716098fd6d579059f0c670abed0bbb825c350fbbad907ab59c10a45, 8, DEFAULT_MMR_ID
         );
-        headersProcessor.processBlocksBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
+        headersStore.processBlocksBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
 
-        uint256 newMMRSize = headersProcessor.getLatestMMRSize(DEFAULT_MMR_ID);
+        uint256 newMMRSize = headersStore.getLatestMMRSize(DEFAULT_MMR_ID);
         uint256 newLeafCount = StatelessMmrHelpers.mmrSizeToLeafCount(newMMRSize);
         assertEq(newLeafCount, 5);
 
-        bytes32 mmrRoot = headersProcessor.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
+        bytes32 mmrRoot = headersStore.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
         assertFalse(mmrRoot == bytes32(0));
     }
 
@@ -151,7 +151,7 @@ contract HeadersProcessor_Test is Test {
         bytes32 parentHash = bytes32(parentHashBytes);
 
         vm.prank(address(commitmentsInbox));
-        headersProcessor.receiveParentHash(blockNumber, parentHash);
+        headersStore.receiveHash(blockNumber, parentHash);
     }
 
     function _getRlpBlockHeader(uint256 blockNumber) internal returns (bytes memory) {
