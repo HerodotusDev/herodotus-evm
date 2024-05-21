@@ -2,11 +2,12 @@
 pragma solidity ^0.8.19;
 
 import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
+import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 
 contract HeadersStore {
-    using EVMHeaderRLP for bytes;
+    using RLPReader for RLPReader.RLPItem;
 
     /// @notice This struct represents a Merkle Mountain Range accumulating provably valid block hash
     /// @dev each MMR is mapped to a unique ID also referred to as mmrId
@@ -231,19 +232,21 @@ contract HeadersStore {
             treeId, referenceProofLeafIndex, referenceProof, mmrPeaks, referenceHeaderSerialized
         );
 
+        bytes32 decodedParentHash = _decodeParentHash(referenceHeaderSerialized);
+
         require(
-            referenceHeaderSerialized.getParentHash() == keccak256(headersSerialized[0]), "ERR_NON_CONSECUTIVE_ELEMENT"
+            decodedParentHash == keccak256(headersSerialized[0]), "ERR_NON_CONSECUTIVE_ELEMENT"
         );
 
         bytes32[] memory headersHashes = new bytes32[](headersSerialized.length);
-        headersHashes[0] = referenceHeaderSerialized.getParentHash();
+        headersHashes[0] = decodedParentHash;
         for (uint256 i = 1; i < headersSerialized.length; ++i) {
-            bytes32 parentHash = headersSerialized[i - 1].getParentHash();
+            bytes32 parentHash = _decodeParentHash(headersSerialized[i - 1]);
             require(_isHeaderValid(parentHash, headersSerialized[i]), "ERR_INVALID_CHAIN_ELEMENT");
             headersHashes[i] = parentHash;
         }
         (newMMRSize, newMMRRoot) = _appendMultipleBlockhashesToMMR(headersHashes, mmrPeaks, treeId);
-        firstBlockInBatch = headersSerialized[0].getBlockNumber();
+        firstBlockInBatch = _decodeBlockNumber(headersSerialized[0]);
     }
 
     function _processBatchNotAccumulated(uint256 treeId, bytes memory ctx, bytes[] memory headersSerialized)
@@ -259,7 +262,7 @@ contract HeadersStore {
         for (uint256 i = 0; i < headersSerialized.length; i++) {
             require(_isHeaderValid(expectedHash, headersSerialized[i]), "ERR_INVALID_CHAIN_ELEMENT");
             headersHashes[i] = expectedHash;
-            expectedHash = headersSerialized[i].getParentHash();
+            expectedHash = _decodeParentHash(headersSerialized[i]);
         }
 
         (newMMRSize, newMMRRoot) = _appendMultipleBlockhashesToMMR(headersHashes, mmrPeaks, treeId);
@@ -289,6 +292,14 @@ contract HeadersStore {
 
     function _isHeaderValid(bytes32 hash, bytes memory header) internal pure returns (bool) {
         return keccak256(header) == hash;
+    }
+
+    function _decodeParentHash(bytes memory header) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(header).readList()[0].readBytes32();
+    }
+
+    function _decodeBlockNumber(bytes memory header) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(header).readList()[8].readUint256();
     }
 
     function _validateParentBlockAndProofIntegrity(
