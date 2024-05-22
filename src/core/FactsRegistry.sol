@@ -9,11 +9,9 @@ import {HeadersStore} from "./HeadersStore.sol";
 
 import {Types} from "../lib/Types.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
-import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {NullableStorageSlot} from "../lib/NullableStorageSlot.sol";
 
 contract FactsRegistry {
-    using EVMHeaderRLP for bytes;
     using Bitmap16 for uint16;
 
     using RLPReader for bytes;
@@ -97,7 +95,7 @@ contract FactsRegistry {
         _verifyAccumulatedHeaderProof(headerProof);
 
         // Verify the account state proof
-        bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
+        bytes32 stateRoot = _getStateRoot(headerProof.provenBlockHeader);
 
         (bool doesAccountExist, bytes memory accountRLP) =
             SecureMerkleTrie.get(abi.encodePacked(account), accountTrieProof, stateRoot);
@@ -160,7 +158,7 @@ contract FactsRegistry {
             mmrRoot
         );
 
-        uint256 actualBlockNumber = proof.provenBlockHeader.getBlockNumber();
+        uint256 actualBlockNumber = _decodeBlockNumber(proof.provenBlockHeader);
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
@@ -179,5 +177,13 @@ contract FactsRegistry {
         balance = accountFields[ACCOUNT_BALANCE_INDEX].readUint256();
         codeHash = accountFields[ACCOUNT_CODE_HASH_INDEX].readBytes32();
         storageRoot = accountFields[ACCOUNT_STORAGE_ROOT_INDEX].readBytes32();
+    }
+
+    function _getStateRoot(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[3].readBytes32();
+    }
+
+    function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[8].readUint256();
     }
 }

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.19;
 
-import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
-
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
+
 
 contract HeadersStore {
     using RLPReader for RLPReader.RLPItem;
@@ -290,16 +289,16 @@ contract HeadersStore {
         mmrs[mmrId].latestSize = newSize;
     }
 
-    function _isHeaderValid(bytes32 hash, bytes memory header) internal pure returns (bool) {
-        return keccak256(header) == hash;
+    function _isHeaderValid(bytes32 hash, bytes memory headerRlp) internal pure returns (bool) {
+        return keccak256(headerRlp) == hash;
     }
 
-    function _decodeParentHash(bytes memory header) internal pure returns (bytes32) {
-        return RLPReader.toRLPItem(header).readList()[0].readBytes32();
+    function _decodeParentHash(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[0].readBytes32();
     }
 
-    function _decodeBlockNumber(bytes memory header) internal pure returns (uint256) {
-        return RLPReader.toRLPItem(header).readList()[8].readUint256();
+    function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[8].readUint256();
     }
 
     function _validateParentBlockAndProofIntegrity(

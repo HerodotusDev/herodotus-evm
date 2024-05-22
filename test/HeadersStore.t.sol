@@ -4,16 +4,16 @@ pragma solidity ^0.8.9;
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
+import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";
 
 import {HeadersStore} from "src/core/HeadersStore.sol";
-import {EVMHeaderRLP} from "src/lib/EVMHeaderRLP.sol";
 
 contract HeadersStore_Test is Test {
     using Strings for uint256;
-    using EVMHeaderRLP for bytes;
+    using RLPReader for RLPReader.RLPItem;
 
     uint256 constant DEFAULT_MMR_ID = 1;
 
@@ -46,7 +46,7 @@ contract HeadersStore_Test is Test {
         bytes32[] memory emptyPeaks = new bytes32[](0);
 
         // Insert a random header as the first element of the MMR
-        bytes32 initialElement = _getRlpBlockHeader(7583803).getParentHash();
+        bytes32 initialElement = _decodeParentHash(_getRlpBlockHeader(7583803));
         (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory peaks) =
             StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
 
@@ -80,7 +80,7 @@ contract HeadersStore_Test is Test {
         bytes32[] memory emptyPeaks = new bytes32[](0);
 
         // Insert a random header as the first element of the MMR
-        bytes32 initialElement = _getRlpBlockHeader(7583803).getParentHash();
+        bytes32 initialElement = _decodeParentHash(_getRlpBlockHeader(7583803));
         (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory initialPeaks) =
             StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
 
@@ -138,6 +138,10 @@ contract HeadersStore_Test is Test {
 
         bytes32 mmrRoot = headersStore.getMMRRoot(DEFAULT_MMR_ID, newMMRSize);
         assertFalse(mmrRoot == bytes32(0));
+    }
+
+    function _decodeParentHash(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[0].readBytes32();
     }
 
     function _receiveParentHashOfBlockWithNumber(uint256 blockNumber) internal {

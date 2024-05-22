@@ -2,14 +2,17 @@
 pragma solidity ^0.8.20;
 
 import {HeadersStore} from "../core/HeadersStore.sol";
-import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {Types} from "../lib/Types.sol";
 
+import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract TimestampRemapper {
+    using RLPReader for RLPReader.RLPItem;
+
+    
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(
         uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize
@@ -109,11 +112,11 @@ contract TimestampRemapper {
             );
 
             // Verify that the block number of the proven header is the next expected one
-            uint256 blockNumber = EVMHeaderRLP.getBlockNumber(headersWithProofs[i].provenBlockHeader);
+            uint256 blockNumber = _decodeBlockNumber(headersWithProofs[i].provenBlockHeader);
             require(blockNumber == nextExpectedBlockAppended, "ERR_UNEXPECTED_BLOCK_NUMBER");
 
             // Decode the timestamp from the proven header
-            uint256 timestamp = EVMHeaderRLP.getTimestamp(headersWithProofs[i].provenBlockHeader);
+            uint256 timestamp = _decodeBlockTimestamp(headersWithProofs[i].provenBlockHeader);
 
             // Append the timestamp to the remapping MMR
             (nextSize, nextRoot, nextPeaks) =
@@ -191,5 +194,13 @@ contract TimestampRemapper {
 
     function getMapperRootAtSize(uint256 mapperId, uint256 size) external view returns (bytes32) {
         return mappers[mapperId].mmrSizeToRoot[size];
+    }
+
+    function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[8].readUint256();
+    }
+
+    function _decodeBlockTimestamp(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[11].readUint256();
     }
 }
