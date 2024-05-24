@@ -20,9 +20,7 @@ contract HeadersStore_Test is Test {
     EOA private commitmentsInbox;
     HeadersStore private headersStore;
 
-    event ProcessedBatch(
-        uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId
-    );
+    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId);
 
     constructor() {
         commitmentsInbox = new EOA();
@@ -47,13 +45,12 @@ contract HeadersStore_Test is Test {
 
         // Insert a random header as the first element of the MMR
         bytes32 initialElement = _decodeParentHash(_getRlpBlockHeader(7583803));
-        (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory peaks) =
-            StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
+        (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory peaks) = StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
 
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersStore.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersStore.createBranchFromMessage(initialMmrRoot, initialMmrSize, someAggregatorId, DEFAULT_MMR_ID);
 
         bytes[] memory headersBatch = new bytes[](1);
         headersBatch[0] = _getRlpBlockHeader(7583801);
@@ -81,20 +78,17 @@ contract HeadersStore_Test is Test {
 
         // Insert a random header as the first element of the MMR
         bytes32 initialElement = _decodeParentHash(_getRlpBlockHeader(7583803));
-        (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory initialPeaks) =
-            StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
+        (uint256 initialMmrSize, bytes32 initialMmrRoot, bytes32[] memory initialPeaks) = StatelessMmr.appendWithPeaksRetrieval(initialElement, emptyPeaks, 0, bytes32(0));
 
         vm.prank(address(commitmentsInbox));
         uint256 someAggregatorId = 424242;
         // Register a new authenticated MMR (id 1)
-        headersStore.createBranchFromMessage(DEFAULT_MMR_ID, initialMmrRoot, initialMmrSize, someAggregatorId);
+        headersStore.createBranchFromMessage(initialMmrRoot, initialMmrSize, someAggregatorId, DEFAULT_MMR_ID);
 
         assertEq(initialMmrSize, 1);
 
         vm.expectEmit();
-        emit ProcessedBatch(
-            7583802, 7583800, 0xd586772978d4f45e951c99bf3c7f3f56fd1f5707213b43924204d9d0769a2bd0, 7, DEFAULT_MMR_ID
-        );
+        emit ProcessedBatch(7583802, 7583800, 0xd586772978d4f45e951c99bf3c7f3f56fd1f5707213b43924204d9d0769a2bd0, 7, DEFAULT_MMR_ID);
         headersStore.processBatch(false, DEFAULT_MMR_ID, abi.encode(7583802, initialPeaks), headersBatch);
 
         assertEq(StatelessMmrHelpers.mmrSizeToLeafCount(7), 4);
@@ -117,8 +111,7 @@ contract HeadersStore_Test is Test {
         }
 
         bytes memory abiEncoded = vm.ffi(inputs);
-        (, bytes32[] memory peaks, bytes32[] memory inclusionProof) =
-            abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
+        (, bytes32[] memory peaks, bytes32[] memory inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
 
         // Grow the MMR starting from the blockhash already present in the MMR
         bytes memory ctx = abi.encode(provenLeafId, inclusionProof, peaks, headersBatch[2]);
@@ -127,9 +120,7 @@ contract HeadersStore_Test is Test {
         nextHeadersBatch[0] = _getRlpBlockHeader(7583799);
 
         vm.expectEmit();
-        emit ProcessedBatch(
-            7583799, 7583799, 0x7d911eafd716098fd6d579059f0c670abed0bbb825c350fbbad907ab59c10a45, 8, DEFAULT_MMR_ID
-        );
+        emit ProcessedBatch(7583799, 7583799, 0x7d911eafd716098fd6d579059f0c670abed0bbb825c350fbbad907ab59c10a45, 8, DEFAULT_MMR_ID);
         headersStore.processBatch(true, DEFAULT_MMR_ID, ctx, nextHeadersBatch);
 
         uint256 newMMRSize = headersStore.getLatestMMRSize(DEFAULT_MMR_ID);

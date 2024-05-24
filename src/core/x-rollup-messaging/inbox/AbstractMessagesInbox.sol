@@ -32,8 +32,8 @@ abstract contract AbstractMessagesInbox is Ownable2Step {
         emit ReceivedHash(messagesOriginChainId, parentHash, blockNumber);
     }
 
-    function receiveKeccakMMR(uint256 assignedId, uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot) external onlyCrossdomainCounterpart {
-        headersStore.createBranchFromMessage(assignedId, keccakMMRRoot, mmrSize, aggregatorId);
+    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot, uint256 newMmrId) external onlyCrossdomainCounterpart {
+        headersStore.createBranchFromMessage(keccakMMRRoot, mmrSize, aggregatorId, newMmrId);
     }
 
     function isCrossdomainCounterpart() public view virtual returns (bool);
