@@ -8,6 +8,7 @@ import {HeadersProcessor} from "../../HeadersProcessor.sol";
 
 abstract contract AbstractMessagesInbox is Ownable2Step {
     event ReceivedParentHash(uint256 originChainId, bytes32 blockhash, uint256 blockNumber);
+    event ReveivedKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot, bytes32 newMMRId);
 
     address public crossDomainMsgSender;
     HeadersProcessor public headersProcessor;
@@ -32,8 +33,9 @@ abstract contract AbstractMessagesInbox is Ownable2Step {
         emit ReceivedParentHash(messagesOriginChainId, parentHash, blockNumber);
     }
 
-    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot) external onlyCrossdomainCounterpart {
-        headersProcessor.createBranchFromMessage(keccakMMRRoot, mmrSize, aggregatorId);
+    function receiveKeccakMMR(uint256 aggregatorId, uint256 mmrSize, bytes32 keccakMMRRoot, bytes32 newMMRId) external onlyCrossdomainCounterpart {
+        headersProcessor.createBranchFromMessage(keccakMMRRoot, mmrSize, aggregatorId, newMMRId);
+        emit ReveivedKeccakMMR(aggregatorId, mmrSize, keccakMMRRoot, newMMRId);
     }
 
     function isCrossdomainCounterpart() public view virtual returns (bool);

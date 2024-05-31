@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 library Types {
     struct BlockHeaderProof {
-        uint256 treeId;
+        bytes32 treeId;
         uint256 mmrTreeSize;
         uint256 blockNumber;
         uint256 blockProofLeafIndex;
