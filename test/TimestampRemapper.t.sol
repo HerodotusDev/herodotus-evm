@@ -7,14 +7,13 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TimestampRemapper} from "src/remappers/TimestampRemapper.sol";
 import {Types} from "src/lib/Types.sol";
 
-uint256 constant DEFAULT_TREE_ID = 0;
+uint128 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
-    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 =
-        0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
+    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
     uint256 constant SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 7;
 
-    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external pure returns (bytes32) {
+    function getMMRRoot(uint128 mmrId, uint256 mmrSize) external pure returns (bytes32) {
         require(mmrId == DEFAULT_TREE_ID, "ERR_INVALID_MMR_ID");
         require(mmrSize == SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1, "ERR_INVALID_MMR_SIZE");
         return ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1;
@@ -52,8 +51,7 @@ contract TimestampRemapper_Test is Test {
     function test_reindexBatch() public {
         uint256 mapperId = _createRemapper(7583800);
 
-        (bytes32[] memory headersMMRPeaks, bytes32[] memory block7583800MMRInclusionProof) =
-            _peaksAndInclusionProofForBlock(4);
+        (bytes32[] memory headersMMRPeaks, bytes32[] memory block7583800MMRInclusionProof) = _peaksAndInclusionProofForBlock(4);
         (, bytes32[] memory block7583801MMRInclusionProof) = _peaksAndInclusionProofForBlock(2);
         (, bytes32[] memory block7583802MMRInclusionProof) = _peaksAndInclusionProofForBlock(1);
 
@@ -109,17 +107,13 @@ contract TimestampRemapper_Test is Test {
         timestamps[2] = 1663065492;
 
         (bytes32[] memory peaks, bytes32[] memory firstElementInclusionProof) = _peaksAndInclusionProofForTimestamp(2);
-        (bytes32[] memory newPeaks, bytes32[] memory secondElementInclusionProof) =
-            _peaksAndInclusionProofForTimestamp(4);
+        (bytes32[] memory newPeaks, bytes32[] memory secondElementInclusionProof) = _peaksAndInclusionProofForTimestamp(4);
         assertEq(keccak256(abi.encode(peaks)), keccak256(abi.encode(newPeaks)));
 
-        TimestampRemapper.BinsearchPathElement memory firstSearchPathElement =
-            TimestampRemapper.BinsearchPathElement(2, bytes32(timestamps[1]), firstElementInclusionProof);
-        TimestampRemapper.BinsearchPathElement memory secondSearchPathElement =
-            TimestampRemapper.BinsearchPathElement(4, bytes32(timestamps[2]), secondElementInclusionProof);
+        TimestampRemapper.BinsearchPathElement memory firstSearchPathElement = TimestampRemapper.BinsearchPathElement(2, bytes32(timestamps[1]), firstElementInclusionProof);
+        TimestampRemapper.BinsearchPathElement memory secondSearchPathElement = TimestampRemapper.BinsearchPathElement(4, bytes32(timestamps[2]), secondElementInclusionProof);
 
-        TimestampRemapper.BinsearchPathElement[] memory searchPath =
-            new TimestampRemapper.BinsearchPathElement[](2);
+        TimestampRemapper.BinsearchPathElement[] memory searchPath = new TimestampRemapper.BinsearchPathElement[](2);
         searchPath[0] = firstSearchPathElement;
         searchPath[1] = secondSearchPathElement;
 
@@ -137,16 +131,12 @@ contract TimestampRemapper_Test is Test {
         timestamps[3] = 1663065504;
         timestamps[4] = 1663065516;
 
-        (bytes32 root, /*bytes32[] memory peaks, bytes32[] memory inclusionProof*/,) =
-            _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
+        (bytes32 root /*bytes32[] memory peaks, bytes32[] memory inclusionProof*/, , ) = _rootAndProofForMapperFedWithPredefinedTimestamps(1, timestamps);
         uint256 mmrSize = 8;
 
-        stdstore.target(address(remapper)).sig(remapper.getMapperLatestSize.selector).with_key(mapperId).checked_write(
-            bytes32(mmrSize)
-        );
+        stdstore.target(address(remapper)).sig(remapper.getMapperLatestSize.selector).with_key(mapperId).checked_write(bytes32(mmrSize));
 
-        stdstore.target(address(remapper)).sig(remapper.getMapperRootAtSize.selector).with_key(mapperId).with_key(mmrSize)
-            .checked_write(root);
+        stdstore.target(address(remapper)).sig(remapper.getMapperRootAtSize.selector).with_key(mapperId).with_key(mmrSize).checked_write(root);
 
         // Ensure storage is set correctly
         assertEq(remapper.getMapperLatestSize(mapperId), mmrSize);
@@ -157,10 +147,10 @@ contract TimestampRemapper_Test is Test {
         return remapper.createMapper(startBlockNumber);
     }
 
-    function _rootAndProofForMapperFedWithPredefinedTimestamps(uint256 elementId, uint256[] memory timestamps)
-        internal
-        returns (bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof)
-    {
+    function _rootAndProofForMapperFedWithPredefinedTimestamps(
+        uint256 elementId,
+        uint256[] memory timestamps
+    ) internal returns (bytes32 root, bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         string[] memory inputs = new string[](3 + timestamps.length);
         inputs[0] = "node";
         inputs[1] = "./helpers/mmrs/get_peaks_and_inclusion_proof.js";
@@ -173,15 +163,9 @@ contract TimestampRemapper_Test is Test {
         return (root, peaks, inclusionProof);
     }
 
-    function _peaksAndInclusionProofForTimestamp(uint256 elementId)
-        internal
-        returns (bytes32[] memory peaks, bytes32[] memory inclusionProof)
-    {
+    function _peaksAndInclusionProofForTimestamp(uint256 elementId) internal returns (bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         require(5 > elementId, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS");
-        require(
-            remapper.getMapperLatestRoot(0) == 0xb466a01610d46c5694c66b0b1afa741e0d1593c8dc975ee5384d032b2f68c211,
-            "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS"
-        );
+        require(remapper.getMapperLatestRoot(0) == 0xb466a01610d46c5694c66b0b1afa741e0d1593c8dc975ee5384d032b2f68c211, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_3_TIMESTAMPS");
 
         uint256[] memory timestamps = new uint256[](3);
 
@@ -200,10 +184,7 @@ contract TimestampRemapper_Test is Test {
         (, peaks, inclusionProof) = abi.decode(abiEncoded, (bytes32, bytes32[], bytes32[]));
     }
 
-    function _peaksAndInclusionProofForBlock(uint256 leafId)
-        internal
-        returns (bytes32[] memory peaks, bytes32[] memory inclusionProof)
-    {
+    function _peaksAndInclusionProofForBlock(uint256 leafId) internal returns (bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         require(6 > leafId, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_HAS_ONLY_4_BLOCKS");
 
         bytes[] memory headersBatch = new bytes[](4);

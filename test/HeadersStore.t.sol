@@ -15,12 +15,12 @@ contract HeadersStore_Test is Test {
     using Strings for uint256;
     using RLPReader for RLPReader.RLPItem;
 
-    uint256 constant DEFAULT_MMR_ID = 1;
+    uint128 constant DEFAULT_MMR_ID = 1;
 
     EOA private commitmentsInbox;
     HeadersStore private headersStore;
 
-    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId);
+    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint128 updatedMMRId);
 
     constructor() {
         commitmentsInbox = new EOA();

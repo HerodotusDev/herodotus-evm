@@ -25,7 +25,7 @@ abstract contract AbstractMessagesSender {
         _sendMessage(l2Target, abi.encodeWithSignature("receiveHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
     }
 
-    function sendKeccakMMRTreeToL2(uint256 newMmrId, uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external payable {
+    function sendKeccakMMRTreeToL2(uint128 newMmrId, uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external payable {
         address existingAggregatorAddr = proofsAggregatorsFactory.aggregatorsById(aggregatorId);
         require(existingAggregatorAddr != address(0), "Unknown aggregator");
         ISharpProofsAggregator aggregator = ISharpProofsAggregator(existingAggregatorAddr);
