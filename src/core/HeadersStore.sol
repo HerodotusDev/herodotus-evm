@@ -22,21 +22,21 @@ contract HeadersStore {
     /// @param newMMRSize the size of the new MMR
     /// @param detachedFromMmrId the ID of the MMR from which the new MMR was created
     /// @param detachedFromMmrIdAtSize the size of the MMR from which the new MMR was created
-    event BranchCreatedFromElement(uint128 newMMRId, bytes32 newMMRRoot, uint256 newMMRSize, uint128 detachedFromMmrId, uint256 detachedFromMmrIdAtSize);
+    event BranchCreatedFromElement(uint256 newMMRId, bytes32 newMMRRoot, uint256 newMMRSize, uint256 detachedFromMmrId, uint256 detachedFromMmrIdAtSize);
 
     /// @notice emitted when a new MMR is created from an existing MMR
     /// @param newMMRId the ID of the new MMR
     /// @param detachedFromRoot the root of the MMR from which the new MMR was created
     /// @param detachedFromMmrId the ID of the MMR from which the new MMR was created
     /// @param detachedFromMmrIdAtSize the size of the MMR from which the new MMR was created
-    event BranchCreatedClone(uint128 newMMRId, bytes32 detachedFromRoot, uint128 detachedFromMmrId, uint256 detachedFromMmrIdAtSize);
+    event BranchCreatedClone(uint256 newMMRId, bytes32 detachedFromRoot, uint256 detachedFromMmrId, uint256 detachedFromMmrIdAtSize);
 
     /// @notice emitted when a new MMR is created from an L1 message
     /// @param newMMRId the ID of the new MMR
     /// @param mmrSize the size of the new MMR
     /// @param mmrRoot the root of the new MMR
     /// @param aggregatorId the ID of the L1 aggregator that is the origin of the message content
-    event BranchCreatedFromL1Message(uint128 newMMRId, uint256 mmrSize, bytes32 mmrRoot, uint256 aggregatorId);
+    event BranchCreatedFromL1Message(uint256 newMMRId, uint256 mmrSize, bytes32 mmrRoot, uint256 aggregatorId);
 
     /// @notice emitted when a new batch of blocks is processed
     /// @param startBlockHigh the block number of the first block in the batch
@@ -44,7 +44,7 @@ contract HeadersStore {
     /// @param newMMRRoot the root of the new MMR
     /// @param newMMRSize the size of the new MMR
     /// @param updatedMMRId the ID of the MMR that was updated
-    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint128 updatedMMRId);
+    event ProcessedBatch(uint256 startBlockHigh, uint256 endBlockLow, bytes32 newMMRRoot, uint256 newMMRSize, uint256 updatedMMRId);
 
     /// @notice empty MMR size
     uint256 constant EMPTY_MMR_SIZE = 1;
@@ -85,7 +85,7 @@ contract HeadersStore {
     /// @param mmrSize the size of the MMR
     /// @param aggregatorId the ID of the L1 aggregator that is the origin of the message content
     /// @param newMmrId the ID of the MMR to create
-    function createBranchFromMessage(bytes32 mmrRoot, uint256 mmrSize, uint256 aggregatorId, uint128 newMmrId) external onlyMessagesInbox {
+    function createBranchFromMessage(bytes32 mmrRoot, uint256 mmrSize, uint256 aggregatorId, uint256 newMmrId) external onlyMessagesInbox {
         require(newMmrId != 0, "NEW_MMR_ID_0_NOT_ALLOWED");
         require(mmrRoot != 0, "ROOT_0_NOT_ALLOWED");
 
@@ -109,13 +109,13 @@ contract HeadersStore {
     /// @param mmrInclusionProof the inclusion proof of the element in the existing MMR
     /// @param newMmrId the ID of the new MMR
     function createBranchSingleElement(
-        uint128 fromMmrId,
+        uint256 fromMmrId,
         uint256 mmrSize,
         uint256 elementIndex,
         bytes32 initialBlockHash,
         bytes32[] calldata mmrPeaks,
         bytes32[] calldata mmrInclusionProof,
-        uint128 newMmrId
+        uint256 newMmrId
     ) external {
         require(fromMmrId != 0, "SRC_MMR_ID_0_NOT_ALLOWED");
         require(newMmrId != 0, "NEW_MMR_ID_0_NOT_ALLOWED");
@@ -146,7 +146,7 @@ contract HeadersStore {
     /// @param mmrId the ID of the MMR from which the new MMR will be created
     /// @param mmrSize size at which the MMR will be copied
     /// @param newMmrId the ID of the new MMR
-    function createBranchFromExisting(uint128 mmrId, uint256 mmrSize, uint128 newMmrId) external {
+    function createBranchFromExisting(uint256 mmrId, uint256 mmrSize, uint256 newMmrId) external {
         require(newMmrId != 0, "NEW_MMR_ID_0_NOT_ALLOWED");
         require(mmrs[newMmrId].latestSize == 0, "NEW_MMR_ALREADY_EXISTS");
 
@@ -178,7 +178,7 @@ contract HeadersStore {
     ///    If the reference header is accumulated, the context contains the MMR proof and peaks.
     ///    If the reference header is not accumulated, the context contains the block number of the reference header and the MMR peaks.
     /// @param headersSerialized the serialized headers of the batch
-    function processBatch(bool isReferenceHeaderAccumulated, uint128 mmrId, bytes calldata ctx, bytes[] calldata headersSerialized) external {
+    function processBatch(bool isReferenceHeaderAccumulated, uint256 mmrId, bytes calldata ctx, bytes[] calldata headersSerialized) external {
         require(headersSerialized.length > 0, "ERR_EMPTY_BATCH");
         require(mmrs[mmrId].latestSize != 0, "ERR_MMR_DOES_NOT_EXIST");
 
@@ -197,7 +197,7 @@ contract HeadersStore {
     /// ========================= Internal functions ========================= //
 
     function _processBatchAccumulated(
-        uint128 treeId,
+        uint256 treeId,
         bytes memory ctx,
         bytes[] memory headersSerialized
     ) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
@@ -224,7 +224,7 @@ contract HeadersStore {
     }
 
     function _processBatchNotAccumulated(
-        uint128 treeId,
+        uint256 treeId,
         bytes memory ctx,
         bytes[] memory headersSerialized
     ) internal returns (uint256 firstBlockInBatch, uint256 newMMRSize, bytes32 newMMRRoot) {
@@ -244,7 +244,7 @@ contract HeadersStore {
         firstBlockInBatch = blockNumber;
     }
 
-    function _appendMultipleBlockhashesToMMR(bytes32[] memory blockhashes, bytes32[] memory lastPeaks, uint128 mmrId) internal returns (uint256 newSize, bytes32 newRoot) {
+    function _appendMultipleBlockhashesToMMR(bytes32[] memory blockhashes, bytes32[] memory lastPeaks, uint256 mmrId) internal returns (uint256 newSize, bytes32 newRoot) {
         // Getting current mmr state for the treeId
         newSize = mmrs[mmrId].latestSize;
         newRoot = mmrs[mmrId].mmrSizeToRoot[newSize];
@@ -274,7 +274,7 @@ contract HeadersStore {
     }
 
     function _validateParentBlockAndProofIntegrity(
-        uint128 mmrId,
+        uint256 mmrId,
         uint256 referenceProofLeafIndex,
         bytes32[] memory referenceProof,
         bytes32[] memory mmrPeaks,
@@ -286,16 +286,16 @@ contract HeadersStore {
         StatelessMmr.verifyProof(referenceProofLeafIndex, keccak256(referenceHeaderSerialized), referenceProof, mmrPeaks, mmrSize, root);
     }
 
-    function getMMRRoot(uint128 mmrId, uint256 mmrSize) external view returns (bytes32) {
+    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external view returns (bytes32) {
         return mmrs[mmrId].mmrSizeToRoot[mmrSize];
     }
 
-    function getLatestMMRRoot(uint128 mmrId) external view returns (bytes32) {
+    function getLatestMMRRoot(uint256 mmrId) external view returns (bytes32) {
         uint256 latestSize = mmrs[mmrId].latestSize;
         return mmrs[mmrId].mmrSizeToRoot[latestSize];
     }
 
-    function getLatestMMRSize(uint128 mmrId) external view returns (uint256) {
+    function getLatestMMRSize(uint256 mmrId) external view returns (uint256) {
         return mmrs[mmrId].latestSize;
     }
 }

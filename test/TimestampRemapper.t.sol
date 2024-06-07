@@ -7,13 +7,13 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {TimestampRemapper} from "src/remappers/TimestampRemapper.sol";
 import {Types} from "src/lib/Types.sol";
 
-uint128 constant DEFAULT_TREE_ID = 0;
+uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
     bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
     uint256 constant SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 7;
 
-    function getMMRRoot(uint128 mmrId, uint256 mmrSize) external pure returns (bytes32) {
+    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external pure returns (bytes32) {
         require(mmrId == DEFAULT_TREE_ID, "ERR_INVALID_MMR_ID");
         require(mmrSize == SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1, "ERR_INVALID_MMR_SIZE");
         return ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1;
