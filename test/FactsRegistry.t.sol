@@ -10,8 +10,7 @@ import {Types} from "src/lib/Types.sol";
 uint256 constant DEFAULT_TREE_ID = 0;
 
 contract MockedHeadersProcessor {
-    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 =
-        0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
+    bytes32 constant ROOT_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 0x7925fc646e7ff14336b092e12adf5b66e8da65a06b14c486c231fcb92ca6c74c;
     uint256 constant SIZE_OF_MMR_CONTAINING_BLOCK_7583802_AT_INDEX_1 = 7;
 
     function getMMRRoot(uint256 mmrId, uint256 mmrSize) external pure returns (bytes32) {
@@ -38,23 +37,19 @@ contract FactsRegistry_Test is Test {
         _proveAccountWithAddressAtBlock(accountToProve, proveForBlock);
 
         uint256 expectedNonce = 1;
-        uint256 savedNonce =
-            uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
+        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
         assertEq(savedNonce, expectedNonce);
 
         uint256 expectedBalance = 0;
-        uint256 savedBalance =
-            uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
+        uint256 savedBalance = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
         assertEq(savedBalance, expectedBalance);
 
         bytes32 expectedStorageRoot = 0x1c35dfde2b62d99d3a74fda76446b60962c4656814bdd7815eb6e5b8be1e7185;
-        bytes32 accountStorageRoot =
-            factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
+        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
         assertEq(accountStorageRoot, expectedStorageRoot);
 
         bytes32 expectedCodeHash = 0xcd4f25236fff0ccac15e82bf4581beb08e95e1b5ba89de6031c75893cd91245c;
-        bytes32 accountCodeHash =
-            factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
+        bytes32 accountCodeHash = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
         assertEq(accountCodeHash, expectedCodeHash);
     }
 
@@ -65,23 +60,19 @@ contract FactsRegistry_Test is Test {
         _proveAccountWithAddressAtBlock(accountToProve, proveForBlock);
 
         uint256 expectedNonce = 0;
-        uint256 savedNonce =
-            uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
+        uint256 savedNonce = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.NONCE));
         assertEq(savedNonce, expectedNonce);
 
         uint256 expectedBalance = 0;
-        uint256 savedBalance =
-            uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
+        uint256 savedBalance = uint256(factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.BALANCE));
         assertEq(savedBalance, expectedBalance);
 
         bytes32 expectedStorageRoot = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421; // EMPTY_TRIE_ROOT_HASH
-        bytes32 accountStorageRoot =
-            factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
+        bytes32 accountStorageRoot = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.STORAGE_ROOT);
         assertEq(accountStorageRoot, expectedStorageRoot);
 
         bytes32 expectedCodeHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470; // EMPTY_CODE_HASH
-        bytes32 accountCodeHash =
-            factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
+        bytes32 accountCodeHash = factsRegistry.accountField(accountToProve, proveForBlock, Types.AccountFields.CODE_HASH);
         assertEq(accountCodeHash, expectedCodeHash);
     }
 
@@ -144,10 +135,7 @@ contract FactsRegistry_Test is Test {
         return storageProof;
     }
 
-    function _peaksAndInclusionProofForBlock(uint256 blockNumber)
-        internal
-        returns (bytes32[] memory peaks, bytes32[] memory inclusionProof)
-    {
+    function _peaksAndInclusionProofForBlock(uint256 blockNumber) internal returns (bytes32[] memory peaks, bytes32[] memory inclusionProof) {
         require(blockNumber == 7583802, "ERR_TEST_MOCKED_HEADERS_PROCESSOR_ONLY_FOR_BLOCK_7583802");
 
         bytes[] memory headersBatch = new bytes[](4);

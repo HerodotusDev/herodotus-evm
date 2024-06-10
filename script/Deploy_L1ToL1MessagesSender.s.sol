@@ -8,7 +8,7 @@ import {IParentHashFetcher} from "src/core/x-rollup-messaging/interfaces/IParent
 import {ISharpProofsAggregatorsFactory} from "src/core/interfaces/ISharpProofsAggregatorsFactory.sol";
 
 import {SimpleMessagesInbox} from "src/core/x-rollup-messaging/inbox/SimpleMessagesInbox.sol";
-import {HeadersProcessor} from "src/core/HeadersProcessor.sol";
+import {HeadersStore} from "src/core/HeadersStore.sol";
 import {FactsRegistry} from "src/core/FactsRegistry.sol";
 
 contract Deploy_L1ToL1MessagesSender is Script {
@@ -21,9 +21,9 @@ contract Deploy_L1ToL1MessagesSender is Script {
 
         SimpleMessagesInbox messagesInbox = new SimpleMessagesInbox();
 
-        HeadersProcessor headersProcessor = new HeadersProcessor(address(messagesInbox));
+        HeadersStore headersStore = new HeadersStore(address(messagesInbox));
 
-        FactsRegistry factsRegistry = new FactsRegistry(address(headersProcessor));
+        FactsRegistry factsRegistry = new FactsRegistry(address(headersStore));
 
         L1ToL1MessagesSender l1ToL1MessagesSender = new L1ToL1MessagesSender(
             ISharpProofsAggregatorsFactory(proofsAggregatorsFactory),
@@ -32,11 +32,11 @@ contract Deploy_L1ToL1MessagesSender is Script {
         );
 
         messagesInbox.setCrossDomainMsgSender(address(l1ToL1MessagesSender));
-        messagesInbox.setHeadersProcessor(address(headersProcessor));
+        messagesInbox.setHeadersStore(address(headersStore));
         messagesInbox.setMessagesOriginChainId(5);
 
         console.log("MessagesInbox deployed at address: %s", address(messagesInbox));
-        console.log("HeadersProcessor deployed at address: %s", address(headersProcessor));
+        console.log("HeadersStore deployed at address: %s", address(headersStore));
         console.log("FactsRegistry deployed at address: %s", address(factsRegistry));
         console.log("L1ToL1MessagesSender deployed at address: %s", address(l1ToL1MessagesSender));
 

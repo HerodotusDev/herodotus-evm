@@ -6,7 +6,9 @@
   "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "deploy": "source .env; forge script script/Deploy_L1ToL1MessagesSender.s.sol:Deploy_L1ToL1MessagesSender --rpc-url $ALCHEMY_URL --broadcast --verify"
+    "deploy:NativeParentHashesFetcher": "source .env; forge script script/Deploy_NativeParentHashesFetcher.s.sol:Deploy_NativeParentHashesFetcher --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv",
+    "deploy:L1ToL1MessagesSender": "source .env; forge script script/Deploy_L1ToL1MessagesSender.s.sol:Deploy_L1ToL1MessagesSender --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv",
+    "deploy:L1ToStarknetMessagesSender": "source .env; forge script script/Deploy_L1ToStarknetMessagesSender.s.sol:Deploy_L1ToStarknetMessagesSender --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv"
   },
   "dependencies": {
     "@accumulators/hashers": "^4.2.3",

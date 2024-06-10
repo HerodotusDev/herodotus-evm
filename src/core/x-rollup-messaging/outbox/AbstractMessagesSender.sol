@@ -22,10 +22,10 @@ abstract contract AbstractMessagesSender {
     function sendExactParentHashToL2(bytes calldata _parentHashFetcherCtx, bytes calldata _xDomainMsgGasData) external payable {
         (uint256 parentHashFetchedForBlock, bytes32 parentHash) = parentHashFetcher.fetchParentHash(_parentHashFetcherCtx);
         require(parentHash != bytes32(0), "ERR_INVALID_BLOCK_NUMBER");
-        _sendMessage(l2Target, abi.encodeWithSignature("receiveParentHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
+        _sendMessage(l2Target, abi.encodeWithSignature("receiveHashForBlock(uint256,bytes32)", parentHashFetchedForBlock, parentHash), _xDomainMsgGasData);
     }
 
-    function sendKeccakMMRTreeToL2(uint256 aggregatorId, bytes calldata _xDomainMsgGasData) external payable {
+    function sendKeccakMMRTreeToL2(uint256 aggregatorId, uint256 newMmrId, bytes calldata _xDomainMsgGasData) external payable {
         address existingAggregatorAddr = proofsAggregatorsFactory.aggregatorsById(aggregatorId);
         require(existingAggregatorAddr != address(0), "Unknown aggregator");
         ISharpProofsAggregator aggregator = ISharpProofsAggregator(existingAggregatorAddr);
@@ -37,7 +37,7 @@ abstract contract AbstractMessagesSender {
         require(mmrSize >= 1, "Invalid tree size");
         require(keccakMMRRoot != bytes32(0), "Invalid root (keccak)");
 
-        _sendMessage(l2Target, abi.encodeWithSignature("receiveKeccakMMR(uint256,uint256,bytes32)", aggregatorId, mmrSize, keccakMMRRoot), _xDomainMsgGasData);
+        _sendMessage(l2Target, abi.encodeWithSignature("receiveKeccakMMR(uint256,uint256,bytes32,uint256)", aggregatorId, mmrSize, keccakMMRRoot, newMmrId), _xDomainMsgGasData);
     }
 
     function _sendMessage(address _l2Target, bytes memory _data, bytes memory _xDomainMsgGasData) internal virtual;

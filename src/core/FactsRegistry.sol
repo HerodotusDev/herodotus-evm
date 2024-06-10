@@ -5,15 +5,13 @@ import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {Lib_SecureMerkleTrie as SecureMerkleTrie} from "@optimism/libraries/trie/Lib_SecureMerkleTrie.sol";
 import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 
-import {HeadersProcessor} from "./HeadersProcessor.sol";
+import {HeadersStore} from "./HeadersStore.sol";
 
 import {Types} from "../lib/Types.sol";
 import {Bitmap16} from "../lib/Bitmap16.sol";
-import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
 import {NullableStorageSlot} from "../lib/NullableStorageSlot.sol";
 
 contract FactsRegistry {
-    using EVMHeaderRLP for bytes;
     using Bitmap16 for uint16;
 
     using RLPReader for bytes;
@@ -32,14 +30,14 @@ contract FactsRegistry {
     bytes32 private constant EMPTY_TRIE_ROOT_HASH = 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421;
     bytes32 private constant EMPTY_CODE_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
-    HeadersProcessor public immutable headersProcessor;
+    HeadersStore public immutable headersStore;
 
     mapping(address => mapping(uint256 => mapping(Types.AccountFields => bytes32))) internal _accountField;
     // address => block number => slot => value
     mapping(address => mapping(uint256 => mapping(bytes32 => bytes32))) internal _accountStorageSlotValues;
 
-    constructor(address _headersProcessor) {
-        headersProcessor = HeadersProcessor(_headersProcessor);
+    constructor(address _headersStore) {
+        headersStore = HeadersStore(_headersStore);
     }
 
     function proveAccount(
@@ -97,7 +95,7 @@ contract FactsRegistry {
         _verifyAccumulatedHeaderProof(headerProof);
 
         // Verify the account state proof
-        bytes32 stateRoot = headerProof.provenBlockHeader.getStateRoot();
+        bytes32 stateRoot = _getStateRoot(headerProof.provenBlockHeader);
 
         (bool doesAccountExist, bytes memory accountRLP) =
             SecureMerkleTrie.get(abi.encodePacked(account), accountTrieProof, stateRoot);
@@ -146,7 +144,7 @@ contract FactsRegistry {
     }
 
     function _verifyAccumulatedHeaderProof(Types.BlockHeaderProof memory proof) internal view {
-        bytes32 mmrRoot = headersProcessor.getMMRRoot(proof.treeId, proof.mmrTreeSize);
+        bytes32 mmrRoot = headersStore.getMMRRoot(proof.treeId, proof.mmrTreeSize);
         require(mmrRoot != bytes32(0), "ERR_EMPTY_MMR_ROOT");
 
         bytes32 blockHeaderHash = keccak256(proof.provenBlockHeader);
@@ -160,7 +158,7 @@ contract FactsRegistry {
             mmrRoot
         );
 
-        uint256 actualBlockNumber = proof.provenBlockHeader.getBlockNumber();
+        uint256 actualBlockNumber = _decodeBlockNumber(proof.provenBlockHeader);
         require(actualBlockNumber == proof.blockNumber, "ERR_INVALID_BLOCK_NUMBER");
     }
 
@@ -179,5 +177,13 @@ contract FactsRegistry {
         balance = accountFields[ACCOUNT_BALANCE_INDEX].readUint256();
         codeHash = accountFields[ACCOUNT_CODE_HASH_INDEX].readBytes32();
         storageRoot = accountFields[ACCOUNT_STORAGE_ROOT_INDEX].readBytes32();
+    }
+
+    function _getStateRoot(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[3].readBytes32();
+    }
+
+    function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[8].readUint256();
     }
 }

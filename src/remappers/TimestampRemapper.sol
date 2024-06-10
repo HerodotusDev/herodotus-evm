@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import {HeadersProcessor} from "../core/HeadersProcessor.sol";
-import {EVMHeaderRLP} from "../lib/EVMHeaderRLP.sol";
+import {HeadersStore} from "../core/HeadersStore.sol";
 import {Types} from "../lib/Types.sol";
 
+import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract TimestampToBlockNumberMapper {
+contract TimestampRemapper {
+    using RLPReader for RLPReader.RLPItem;
+
+    
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
     event RemappedBlocksBatch(
         uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize
@@ -34,11 +37,8 @@ contract TimestampToBlockNumberMapper {
         bytes32[] inclusionProof;
     }
 
-    /// @notice offset used to calculate memory keys in order to avoid collisions when memoizing
-    uint256 private _HASHMAP_KEY_OFFSET = 0xDEFACED00000;
-
     /// @notice headersProcessor is the address of the headers processor contract
-    HeadersProcessor public immutable headersProcessor;
+    HeadersStore public immutable headersStore;
 
     /// @notice mappersCount represents the number of mappers created
     uint256 public mappersCount;
@@ -47,9 +47,9 @@ contract TimestampToBlockNumberMapper {
     mapping(uint256 => MapperInfo) public mappers;
 
     /// @notice constructor
-    /// @param _headersProcessor the address of the headers processor contract
-    constructor(address _headersProcessor) {
-        headersProcessor = HeadersProcessor(_headersProcessor);
+    /// @param _headersStore the address of the headers processor contract
+    constructor(address _headersStore) {
+        headersStore = HeadersStore(_headersStore);
     }
 
     /// @notice creates a new mapper
@@ -98,7 +98,7 @@ contract TimestampToBlockNumberMapper {
         // Iterate over the headers with proofs
         for (uint256 i = 0; i < headersWithProofs.length; i++) {
             uint256 elementsCount = headersWithProofs[i].mmrTreeSize;
-            bytes32 root = headersProcessor.getMMRRoot(headersWithProofs[i].treeId, elementsCount);
+            bytes32 root = headersStore.getMMRRoot(headersWithProofs[i].treeId, elementsCount);
             require(root != bytes32(0), "ERR_INVALID_TREE_ID");
 
             // Verify the proof against the MMR root
@@ -112,11 +112,11 @@ contract TimestampToBlockNumberMapper {
             );
 
             // Verify that the block number of the proven header is the next expected one
-            uint256 blockNumber = EVMHeaderRLP.getBlockNumber(headersWithProofs[i].provenBlockHeader);
+            uint256 blockNumber = _decodeBlockNumber(headersWithProofs[i].provenBlockHeader);
             require(blockNumber == nextExpectedBlockAppended, "ERR_UNEXPECTED_BLOCK_NUMBER");
 
             // Decode the timestamp from the proven header
-            uint256 timestamp = EVMHeaderRLP.getTimestamp(headersWithProofs[i].provenBlockHeader);
+            uint256 timestamp = _decodeBlockTimestamp(headersWithProofs[i].provenBlockHeader);
 
             // Append the timestamp to the remapping MMR
             (nextSize, nextRoot, nextPeaks) =
@@ -194,5 +194,13 @@ contract TimestampToBlockNumberMapper {
 
     function getMapperRootAtSize(uint256 mapperId, uint256 size) external view returns (bytes32) {
         return mappers[mapperId].mmrSizeToRoot[size];
+    }
+
+    function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[8].readUint256();
+    }
+
+    function _decodeBlockTimestamp(bytes memory headerRlp) internal pure returns (uint256) {
+        return RLPReader.toRLPItem(headerRlp).readList()[11].readUint256();
     }
 }
