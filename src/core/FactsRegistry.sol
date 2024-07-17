@@ -86,6 +86,20 @@ contract FactsRegistry {
         emit StorageSlotProven(account, blockNumber, slot, bytes32(NullableStorageSlot.fromNullable(slotValueNullable)));
     }
 
+    function proveReceipt(
+        uint256 txIndex,
+        Types.BlockHeaderProof calldata headerProof,
+        bytes calldata receiptTrieProof
+    ) public view returns (bytes memory receipt) {
+        // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
+        _verifyAccumulatedHeaderProof(headerProof);
+
+        // Verify the receipt proof
+        bytes32 stateRoot = _getReceiptRoot(headerProof.provenBlockHeader);
+
+        (, receipt) = SecureMerkleTrie.get(abi.encodePacked(txIndex), receiptTrieProof, stateRoot);
+    }
+
     function verifyAccount(
         address account,
         Types.BlockHeaderProof calldata headerProof,
@@ -181,6 +195,14 @@ contract FactsRegistry {
 
     function _getStateRoot(bytes memory headerRlp) internal pure returns (bytes32) {
         return RLPReader.toRLPItem(headerRlp).readList()[3].readBytes32();
+    }
+
+    function _getTransactionRoot(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[4].readBytes32();
+    }
+
+    function _getReceiptRoot(bytes memory headerRlp) internal pure returns (bytes32) {
+        return RLPReader.toRLPItem(headerRlp).readList()[5].readBytes32();
     }
 
     function _decodeBlockNumber(bytes memory headerRlp) internal pure returns (uint256) {

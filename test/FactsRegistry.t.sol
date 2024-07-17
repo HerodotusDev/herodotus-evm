@@ -20,6 +20,7 @@ contract MockedHeadersProcessor {
     }
 }
 
+
 contract FactsRegistry_Test is Test {
     using Strings for uint256;
 
@@ -167,3 +168,42 @@ contract FactsRegistry_Test is Test {
         return headerRlp;
     }
 }
+
+contract MockedHeadersProcessorSepolia {
+    bytes32 constant MOCKED_ROOT = 0xc104717a0f277bd2914fdcc5dddbcf19e4c8a919d3c792a8ed5ac64c6683dd79;
+    uint256 constant MOCKED_MMR_SIZE = 12646876;
+
+    function getMMRRoot(uint256 mmrId, uint256 mmrSize) external pure returns (bytes32) {
+        require(mmrId == DEFAULT_TREE_ID, "ERR_INVALID_MMR_ID");
+        require(mmrSize == MOCKED_MMR_SIZE, "ERR_INVALID_MMR_SIZE");
+        return MOCKED_ROOT;
+    }
+}
+
+
+contract FactsRegistry_Test_Sepolia is FactsRegistry_Test {
+    constructor() {
+        MockedHeadersProcessorSepolia mockedHeadersProcessor = new MockedHeadersProcessorSepolia();
+        factsRegistry = new FactsRegistry(address(mockedHeadersProcessor));
+    }
+
+    function test_proveReceipt() public {
+        uint256 proveForBlock = 6141490;
+        uint256 receiptIndex = 23;
+
+        bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
+        Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
+            treeId: DEFAULT_TREE_ID,
+            mmrTreeSize: 7,
+            blockNumber: proveForBlock,
+            blockProofLeafIndex: 1,
+            mmrPeaks: peaks,
+            mmrElementInclusionProof: mmrInclusionProof,
+            provenBlockHeader: rlpHeader
+        });
+        bytes memory receiptProof = _getReceiptProof(proveForBlock, receiptIndex);
+
+    }
+
+}
+
