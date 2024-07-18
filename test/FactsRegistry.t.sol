@@ -184,6 +184,7 @@ contract MockedHeadersProcessorSepolia {
 
 contract FactsRegistry_Test_Sepolia is Test {
     FactsRegistry private factsRegistry;
+    using Strings for uint256;
 
     constructor() {
         MockedHeadersProcessorSepolia mockedHeadersProcessor = new MockedHeadersProcessorSepolia();
@@ -192,7 +193,7 @@ contract FactsRegistry_Test_Sepolia is Test {
 
     function test_proveReceipt() public {
         uint256 proveForBlock = 6141490;
-        uint256 receiptIndex = 23;
+        uint256 transactionIndex = 23;
 
         bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
         (bytes32[] memory peaks, bytes32[] memory mmrInclusionProof) = _peaksAndInclusionProofForBlock(proveForBlock);
@@ -205,12 +206,49 @@ contract FactsRegistry_Test_Sepolia is Test {
             mmrElementInclusionProof: mmrInclusionProof,
             provenBlockHeader: rlpHeader
         });
-        bytes memory receiptProof = _getReceiptProof(proveForBlock, receiptIndex);
+        bytes memory receiptProof = _getReceiptProof(proveForBlock, transactionIndex);
 
     }
 
-    function _getReceiptProof(uint256 blockNumber, uint256 receiptIndex) internal returns (bytes memory) {
-        return bytes("");
+    function _getReceiptProof(uint256 blockNumber, uint256 transactionIndex) internal returns (bytes memory) {
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/state-proofs/fetch_receipts_proof.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = transactionIndex.toString();
+        bytes memory abiEncoded = vm.ffi(inputs);
+        bytes memory receiptsProof = abi.decode(abiEncoded, (bytes));
+        return receiptsProof;
+    }
+
+    function test_proveTransaction() public {
+        uint256 proveForBlock = 6141490;
+        uint256 transactionIndex = 23;
+
+        bytes memory rlpHeader = _getRlpBlockHeader(proveForBlock);
+        (bytes32[] memory peaks, bytes32[] memory mmrInclusionProof) = _peaksAndInclusionProofForBlock(proveForBlock);
+        Types.BlockHeaderProof memory headerProof = Types.BlockHeaderProof({
+            treeId: 27,
+            mmrTreeSize: 13024091,
+            blockNumber: proveForBlock,
+            blockProofLeafIndex: 12635058,
+            mmrPeaks: peaks,
+            mmrElementInclusionProof: mmrInclusionProof,
+            provenBlockHeader: rlpHeader
+        });
+        bytes memory receiptProof = _getReceiptProof(proveForBlock, transactionIndex);
+
+    }
+
+    function _getTransactionProof(uint256 blockNumber, uint256 transactionIndex) internal returns (bytes memory) {
+        string[] memory inputs = new string[](4);
+        inputs[0] = "node";
+        inputs[1] = "./helpers/state-proofs/fetch_transaction_proof.js";
+        inputs[2] = blockNumber.toString();
+        inputs[3] = transactionIndex.toString();
+        bytes memory abiEncoded = vm.ffi(inputs);
+        bytes memory transactionProof = abi.decode(abiEncoded, (bytes));
+        return transactionProof;
     }
 
     function _getRlpBlockHeader(uint256 blockNumber) internal returns (bytes memory) {

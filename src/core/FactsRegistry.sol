@@ -95,9 +95,23 @@ contract FactsRegistry {
         _verifyAccumulatedHeaderProof(headerProof);
 
         // Verify the receipt proof
-        bytes32 stateRoot = _getReceiptRoot(headerProof.provenBlockHeader);
+        bytes32 receiptRoot = _getReceiptRoot(headerProof.provenBlockHeader);
 
-        (, receipt) = SecureMerkleTrie.get(abi.encodePacked(txIndex), receiptTrieProof, stateRoot);
+        (, receipt) = SecureMerkleTrie.get(abi.encodePacked(txIndex), receiptTrieProof, receiptRoot);
+    }
+
+     function proveTransaction(
+        uint256 txIndex,
+        Types.BlockHeaderProof calldata headerProof,
+        bytes calldata transactionTrieProof
+    ) public view returns (bytes memory transaction) {
+        // Ensure provided header is a valid one by making sure it is committed in the HeadersStore MMR
+        _verifyAccumulatedHeaderProof(headerProof);
+
+        // Verify the transaction proof
+        bytes32 transactionRoot = _getTransactionRoot(headerProof.provenBlockHeader);
+
+        (, transaction) = SecureMerkleTrie.get(abi.encodePacked(txIndex), transactionTrieProof, transactionRoot);
     }
 
     function verifyAccount(
