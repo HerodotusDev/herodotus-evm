@@ -2,7 +2,7 @@
   "name": "herodotus-evm",
   "version": "1.0.1",
   "repository": "git@github.com:HerodotusDev/herodotus-evm.git",
-  "author": "Herodotus Ltd <hello@herodotus.dev>",
+  "author": "Herodotus Dev Ltd <hello@herodotus.dev>",
   "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
