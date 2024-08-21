@@ -17,8 +17,8 @@ contract Deploy_L1ToStarknetMessagesSender is Script {
         NativeParentHashesFetcher parentHashFetcher = new NativeParentHashesFetcher();
 
         L1ToStarknetMessagesSender l1MessagesSender = new L1ToStarknetMessagesSender(
-            IStarknetCore(vm.envAddress("STARKNET_CORE_ADDRESS")),
-            vm.envUint("L2_RECIPIENT_ADDRESS"),
+            IStarknetCore(vm.envAddress("STARKNET_SEPOLIA_CORE_ADDRESS")),
+            vm.envUint("STARKNET_RECIPIENT_ADDRESS"),
             vm.envAddress("L1_MAINNET_AGGREGATORS_FACTORY"),
             IParentHashFetcher(address(parentHashFetcher))
         );
