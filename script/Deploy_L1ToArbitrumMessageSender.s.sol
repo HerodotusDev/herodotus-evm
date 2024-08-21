@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
 
-import {L1ToArbitrumMessagesSender} from "../src/core/x-rollup-messaging/L1ToArbitrumMessagesSender.sol";
+import {L1ToArbitrumMessagesSender} from "../src/core/x-rollup-messaging/outbox/L1ToArbitrumMessagesSender.sol";
 import {IArbitrumInbox} from "../src/core/x-rollup-messaging/interfaces/IArbitrumInbox.sol";
 import {IParentHashFetcher} from "../src/core/x-rollup-messaging/interfaces/IParentHashFetcher.sol";
 import {ISharpProofsAggregatorsFactory} from "../src/core/interfaces/ISharpProofsAggregatorsFactory.sol";

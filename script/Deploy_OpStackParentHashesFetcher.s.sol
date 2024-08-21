@@ -15,7 +15,7 @@ contract Deploy_OpStackParentHashesFetcher is Script {
 
         address l2OutputOracle = vm.envAddress("L2_OUTPUT_ORACLE");
 
-        OpStackParentHashesFetcher opStackParentHashesFetcher = new OpStackParentHashesFetcher(IL2OutputOracle(l2OutputOracle));
+        OpStackParentHashesFetcher opStackParentHashesFetcher = new OpStackParentHashesFetcher(IL2OutputOracle(l2OutputOracle), 11155111);
 
         console2.log("OpStackParentHashesFetcher address: %s", address(opStackParentHashesFetcher));
 
