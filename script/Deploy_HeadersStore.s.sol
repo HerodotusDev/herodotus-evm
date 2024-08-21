@@ -2,18 +2,19 @@
 pragma solidity ^0.8.9;
 
 import "forge-std/Script.sol";
-
-import {MessagesInbox} from "src/core/MessagesInbox.sol";
+import {HeadersStore} from "src/core/HeadersStore.sol";
 import {console2} from "forge-std/console2.sol";
 
-contract Deploy_MessagesInbox is Script {
+contract Deploy_HeadersStore is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address messagesInbox = vm.envAddress("MESSAGES_INBOX");
+
         vm.startBroadcast(deployerPrivateKey);
 
-        MessagesInbox messagesInbox = new MessagesInbox();
+        HeadersStore headersStore = new HeadersStore(messagesInbox);
 
-        console2.log("MessagesInbox deployed at address: %s", address(messagesInbox));
+        console2.log("HeadersStore deployed at address: %s", address(headersStore));
 
         vm.stopBroadcast();
     }

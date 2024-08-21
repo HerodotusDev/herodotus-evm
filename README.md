@@ -40,7 +40,7 @@ forge test
 
 - FactsRegistry: stores facts (e.g., nonces, balances, code hashes, storage hashes, etc.) for each proven origin chain account.
 
-Note: currently, the origin chain is Ethereum L1 (Goërli on testnet and Mainnet on mainnet).
+Note: currently, the origin chain is Ethereum L1 (Sepolia on testnet and Mainnet on mainnet).
 However, the contracts are designed to be chain-agnostic and can be used with any EVM-compatible chain.
 
 ## Deployed Contracts

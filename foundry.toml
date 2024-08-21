@@ -12,9 +12,10 @@ libs = ['lib']
 ffi = true
 viaIR = true
 solc = "0.8.20"
+evm_version = "shanghai"
 
 [rpc_endpoints]
-goerli = "${ALCHEMY_URL}"
+sepolia = "https://sepolia.drpc.org"
 
 [etherscan]
 goerli = { key = "${ETHERSCAN_API_KEY}" }
