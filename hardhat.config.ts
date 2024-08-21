@@ -34,14 +34,25 @@ const config: HardhatUserConfig = {
       sepolia: process.env.L1_ETHERSCAN_API_KEY as string,
       zkSyncSepolia: process.env.ZKSYNC_ETHERSCAN_API_KEY as string,
       optimismSepolia: process.env.OPTIMISM_ETHERSCAN_API_KEY as string,
+      arbitrumSepolia: process.env.ARBITRUM_ETHERSCAN_API_KEY as string,
     },
     customChains: [
       {
         network: "optimismSepolia",
         chainId: parseInt(process.env.OPTIMISM_SEPOLIA_CHAINID as string),
         urls: {
-          apiURL: process.env.OPTIMISM_ETHERSCAN_API_URL as string,
-          browserURL: process.env.OPTIMISM_ETHERSCAN_BROWSER_URL as string,
+          apiURL: process.env.OPTIMISM_SEPOLIA_ETHERSCAN_API_URL as string,
+          browserURL: process.env
+            .OPTIMISM_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
+        },
+      },
+      {
+        network: "arbitrumSepolia",
+        chainId: parseInt(process.env.ARBITRUM_SEPOLIA_CHAINID as string),
+        urls: {
+          apiURL: process.env.ARBITRUM_SEPOLIA_ETHERSCAN_API_URL as string,
+          browserURL: process.env
+            .ARBITRUM_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
         },
       },
     ],
@@ -62,6 +73,10 @@ const config: HardhatUserConfig = {
     optimismSepolia: {
       url: process.env.OPTIMISM_SEPOLIA_RPC,
       accounts: [process.env.OPTIMISM_PRIVATE_KEY as string],
+    },
+    arbitrumSepolia: {
+      url: process.env.ARBITRUM_SEPOLIA_RPC,
+      accounts: [process.env.ARBITRUM_PRIVATE_KEY as string],
     },
   },
 };
