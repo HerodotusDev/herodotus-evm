@@ -30,6 +30,9 @@ forge install
 
 # Running tests requires .env to be configured
 forge test
+
+# Compile with hardhat
+npx hardhat compile
 ```
 
 ## Contracts Overview
@@ -49,7 +52,14 @@ However, the contracts are designed to be chain-agnostic and can be used with an
 
 ## Deployment
 
-`pnpm run deploy`
+`pnpm run deploy:CONNECTION`
+
+Possible connections:
+
+- `11155111_to_11155111` - sepolia -> sepolia
+- `11155111_to_300` - sepolia -> zkSyncSepolia
+- `11155111_to_11155420` - sepolia -> op sepolia
+- `11155111_to_421614` - sepolia -> arbitrum sepolia
 
 ## Documentation
 
