@@ -61,6 +61,8 @@ Possible connections:
 - `11155111_to_11155420` - sepolia -> op sepolia
 - `11155111_to_421614` - sepolia -> arbitrum sepolia
 
+If not all contracts were verified, run `pnpm run verify:CONNECTION`.
+
 ## Documentation
 
 Here are some useful links for further reading:
