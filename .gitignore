@@ -10,3 +10,24 @@ broadcast
 
 artifacts-zk/
 cache-zk/
+
+node_modules
+.env
+
+# Hardhat files
+/cache
+/artifacts
+cache_hardhat/
+cache_hardhat-zk/
+deployments-zk/
+
+# TypeChain files
+/typechain
+/typechain-types
+
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# Hardhat Ignition default folder for deployments against a local node
+ignition/deployments/chain-31337

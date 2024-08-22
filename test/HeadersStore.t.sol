@@ -4,7 +4,7 @@ pragma solidity ^0.8.9;
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
-import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
+import {Lib_RLPReader as RLPReader} from "../src/lib/external/rlp/Lib_RLPReader.sol";
 
 import {Test} from "forge-std/Test.sol";
 import {EOA} from "./helpers/EOA.sol";

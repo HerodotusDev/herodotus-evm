@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {HeadersStore} from "../core/HeadersStore.sol";
 import {Types} from "../lib/Types.sol";
 
-import {Lib_RLPReader as RLPReader} from "@optimism/libraries/rlp/Lib_RLPReader.sol";
+import {Lib_RLPReader as RLPReader} from "../lib/external/rlp/Lib_RLPReader.sol";
 import {StatelessMmr} from "solidity-mmr/lib/StatelessMmr.sol";
 import {StatelessMmrHelpers} from "solidity-mmr/lib/StatelessMmrHelpers.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -12,11 +12,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 contract TimestampRemapper {
     using RLPReader for RLPReader.RLPItem;
 
-    
     event MapperCreated(uint256 mapperId, uint256 startsFromBlock);
-    event RemappedBlocksBatch(
-        uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize
-    );
+    event RemappedBlocksBatch(uint256 mapperId, uint256 startsFromBlock, uint256 endsAtBlock, bytes32 mmrRoot, uint256 mmrSize);
 
     /// @notice struct stored in the contract storage, represents the mapper
     struct MapperInfo {
@@ -68,11 +65,7 @@ contract TimestampRemapper {
     /// @param targettedMapId the id of the mapper to which the headers are appended
     /// @param lastPeaks the peaks of the grown remapping MMR
     /// @param headersWithProofs the headers with their proofs against the MMR managed by the headers processor
-    function reindexBatch(
-        uint256 targettedMapId,
-        bytes32[] calldata lastPeaks,
-        Types.BlockHeaderProof[] calldata headersWithProofs
-    ) external {
+    function reindexBatch(uint256 targettedMapId, bytes32[] calldata lastPeaks, Types.BlockHeaderProof[] calldata headersWithProofs) external {
         // Ensure that remapper exists at the given id
         bool isInitialized = mappers[targettedMapId].initialized;
         require(isInitialized, "ERR_UNINITIALIZED_MAPPER");
@@ -119,8 +112,7 @@ contract TimestampRemapper {
             uint256 timestamp = _decodeBlockTimestamp(headersWithProofs[i].provenBlockHeader);
 
             // Append the timestamp to the remapping MMR
-            (nextSize, nextRoot, nextPeaks) =
-                StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextSize, nextRoot);
+            (nextSize, nextRoot, nextPeaks) = StatelessMmr.appendWithPeaksRetrieval(bytes32(timestamp), nextPeaks, nextSize, nextRoot);
 
             // Increment the next expected block number
             nextExpectedBlockAppended++;
@@ -155,14 +147,7 @@ contract TimestampRemapper {
             uint256 currentElement = (lowerBound + upperBound) / 2;
             require(leafIndex == currentElement, "ERR_INVALID_SEARCH_PATH");
 
-            StatelessMmr.verifyProof(
-                searchPath[i].elementIndex,
-                searchPath[i].leafValue,
-                searchPath[i].inclusionProof,
-                peaks,
-                searchAtSize,
-                remappedRoot
-            );
+            StatelessMmr.verifyProof(searchPath[i].elementIndex, searchPath[i].leafValue, searchPath[i].inclusionProof, peaks, searchAtSize, remappedRoot);
 
             if (timestamp < uint256(searchPath[i].leafValue)) {
                 require(currentElement >= 1, "ERR_SEARCH_BOUND_OUT_OF_RANGE");
