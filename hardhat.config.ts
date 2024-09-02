@@ -78,6 +78,10 @@ const config: HardhatUserConfig = {
       url: process.env.ARBITRUM_SEPOLIA_RPC,
       accounts: [process.env.ARBITRUM_PRIVATE_KEY as string],
     },
+    worldChainSepolia: {
+      url: process.env.WORLD_CHAIN_SEPOLIA_RPC,
+      accounts: [process.env.WORLD_CHAIN_PRIVATE_KEY as string],
+    },
   },
 };
 export default config;
