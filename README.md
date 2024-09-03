@@ -45,7 +45,7 @@ However, the contracts are designed to be chain-agnostic and can be used with an
 
 ## Deployed Contracts
 
-- [Deployed Contracts Addresses](https://docs.herodotus.dev/herodotus-docs/deployed-contracts)
+- [Deployed Contracts Addresses](https://docs.herodotus.dev/herodotus-docs/developers/contract-addresses)
 
 ## Deployment
 
