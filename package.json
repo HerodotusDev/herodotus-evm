@@ -6,14 +6,22 @@
   "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "compile": "npx hardhat compile",
     "deploy:11155111_to_300": "bash script/Deploy_11155111_to_300.sh",
     "deploy:11155111_to_11155111": "npx hardhat run script/Deploy_11155111_to_11155111.ts --network sepolia",
     "deploy:11155111_to_11155420": "bash script/Deploy_11155111_to_11155420.sh",
     "deploy:11155111_to_421614": "bash script/Deploy_11155111_to_421614.sh",
+    "deploy:11155111_to_4801": "bash script/Deploy_11155111_to_4801.sh",
+    "deploy:4801_to_4801": "npx hardhat run script/Deploy_4801_to_4801.ts --network worldChainSepolia",
+    "deploy:4801_to_11155111": "npx hardhat run script/Deploy_4801_to_11155111.ts --network sepolia",
+    "deploy:84532_to_4801": "bash script/Deploy_84532_to_4801.sh",
     "verify:11155111_to_300": "bash script/Verify_11155111_to_300.sh",
     "verify:11155111_to_11155111": "bash script/Verify_11155111_to_11155111.sh",
     "verify:11155111_to_11155420": "bash script/Verify_11155111_to_11155420.sh",
-    "verify:11155111_to_421614": "bash script/Verify_11155111_to_421614.sh"
+    "verify:11155111_to_421614": "bash script/Verify_11155111_to_421614.sh",
+    "verify:11155111_to_4801": "bash script/Verify_11155111_to_4801.sh",
+    "verify:4801_to_4801": "bash script/Verify_4801_to_4801.sh",
+    "verify:4801_to_11155111": "bash script/Verify_4801_to_11155111.sh"
   },
   "dependencies": {
     "@accumulators/hashers": "^4.2.3",

@@ -35,6 +35,7 @@ const config: HardhatUserConfig = {
       zkSyncSepolia: process.env.ZKSYNC_ETHERSCAN_API_KEY as string,
       optimismSepolia: process.env.OPTIMISM_ETHERSCAN_API_KEY as string,
       arbitrumSepolia: process.env.ARBITRUM_ETHERSCAN_API_KEY as string,
+      // worldChainSepolia: process.env.WORLD_CHAIN_ETHERSCAN_API_KEY as string,
     },
     customChains: [
       {
@@ -55,6 +56,16 @@ const config: HardhatUserConfig = {
             .ARBITRUM_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
         },
       },
+      //? Verifying Probably does not work on World Chain yet
+      // {
+      //   network: "worldChainSepolia",
+      //   chainId: parseInt(process.env.WORLD_CHAIN_SEPOLIA_CHAINID as string),
+      //   urls: {
+      //     apiURL: process.env.WORLD_CHAIN_SEPOLIA_ETHERSCAN_API_URL as string,
+      //     browserURL: process.env
+      //       .WORLD_CHAIN_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
+      //   },
+      // },
     ],
   },
   defaultNetwork: "zkSyncSepolia",
@@ -77,6 +88,10 @@ const config: HardhatUserConfig = {
     arbitrumSepolia: {
       url: process.env.ARBITRUM_SEPOLIA_RPC,
       accounts: [process.env.ARBITRUM_PRIVATE_KEY as string],
+    },
+    worldChainSepolia: {
+      url: process.env.WORLD_CHAIN_SEPOLIA_RPC,
+      accounts: [process.env.WORLD_CHAIN_PRIVATE_KEY as string],
     },
   },
 };
