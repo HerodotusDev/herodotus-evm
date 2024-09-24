@@ -26,12 +26,12 @@ contract OpStackParentHashesFetcher is IParentHashFetcher {
         override
         returns (uint256 fetchedForBlock, bytes32 parentHash)
     {
-        (uint256 disputeGameIndex, bytes memory outputRootPreimage) = abi.decode(ctx, (uint256, bytes));
+        (uint256 startSearchGameIndex, bytes memory outputRootPreimage) = abi.decode(ctx, (uint256, bytes));
 
         // Fetch the latest dispute game
         IDisputeGameFactory.GameSearchResult memory game = disputeGameFactory.findLatestGames(
             respectedGameType,
-            disputeGameIndex,
+            startSearchGameIndex,
             1
         )[0];
 
