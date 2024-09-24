@@ -18,4 +18,12 @@ library Types {
         STORAGE_ROOT,
         CODE_HASH
     }
+
+    enum DisputeGameStatus {
+        IN_PROGRESS,
+        CHALLENGER_WINS,
+        DEFENDER_WINS
+    }
+
+    type GameType is uint32;
 }
