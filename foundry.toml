@@ -5,7 +5,7 @@ remappings = [
     "forge-std/=lib/forge-std/src/",
     "@openzeppelin/=lib/openzeppelin-contracts/",
     "solidity-mmr/=lib/solidity-mmr/src/",
-    "@optimism/libraries=src/lib/external",
+    "@optimism/libraries/=src/lib/external/",
 ]
 out = 'out'
 libs = ['lib']
@@ -18,6 +18,4 @@ evm_version = "shanghai"
 sepolia = "https://sepolia.drpc.org"
 
 [etherscan]
-goerli = { key = "${ETHERSCAN_API_KEY}" }
-
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+zksync_sepolia = { key = "${OPTIMISM_ETHERSCAN_API_KEY}", url = "https://explorer.sepolia.era.zksync.dev/contract_verification", chain = "300" }

@@ -6,23 +6,41 @@
   "license": "GPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "deploy:NativeParentHashesFetcher": "source .env; forge script script/Deploy_NativeParentHashesFetcher.s.sol:Deploy_NativeParentHashesFetcher --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv",
-    "deploy:L1ToL1MessagesSender": "source .env; forge script script/Deploy_L1ToL1MessagesSender.s.sol:Deploy_L1ToL1MessagesSender --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv",
-    "deploy:L1ToStarknetMessagesSender": "source .env; forge script script/Deploy_L1ToStarknetMessagesSender.s.sol:Deploy_L1ToStarknetMessagesSender --rpc-url $DEPLOY_RPC_URL --broadcast --verify -vvvv"
+    "deploy:11155111_to_300": "bash script/Deploy_11155111_to_300.sh",
+    "deploy:11155111_to_11155111": "npx hardhat run script/Deploy_11155111_to_11155111.ts --network sepolia",
+    "deploy:11155111_to_11155420": "bash script/Deploy_11155111_to_11155420.sh",
+    "deploy:11155111_to_421614": "bash script/Deploy_11155111_to_421614.sh",
+    "deploy:11155111_to_33111": "bash script/Deploy_11155111_to_33111.sh",
+    "verify:11155111_to_300": "bash script/Verify_11155111_to_300.sh",
+    "verify:11155111_to_11155111": "bash script/Verify_11155111_to_11155111.sh",
+    "verify:11155111_to_11155420": "bash script/Verify_11155111_to_11155420.sh",
+    "verify:11155111_to_421614": "bash script/Verify_11155111_to_421614.sh",
+    "verify:11155111_to_33111": "bash script/Verify_11155111_to_33111.sh"
   },
   "dependencies": {
     "@accumulators/hashers": "^4.2.3",
     "@accumulators/memory": "^4.2.3",
     "@accumulators/merkle-mountain-range": "^4.2.3",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "axios": "^1.6.2",
-    "ethers": "^5.7.2",
     "rlp": "2.2.7"
   },
   "devDependencies": {
+    "@matterlabs/hardhat-zksync-deploy": "^1.5.0",
+    "@matterlabs/hardhat-zksync-solc": "^1.2.1",
+    "@matterlabs/hardhat-zksync-verify": "^1.6.0",
+    "@matterlabs/zksync-contracts": "^0.6.1",
+    "@nomicfoundation/hardhat-foundry": "^1.1.2",
+    "@nomicfoundation/hardhat-verify": "^2.0.9",
     "custom-env": "^2.0.2",
     "dotenv": "^16.3.1",
+    "ethers": "^6.13.2",
+    "hardhat": "^2.22.8",
     "only-allow": "^1.2.1",
     "prettier": "^3.1.1",
-    "prettier-plugin-solidity": "^1.2.0"
+    "prettier-plugin-solidity": "^1.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "zksync-ethers": "^6.11.2"
   }
 }
