@@ -35,6 +35,7 @@ const config: HardhatUserConfig = {
       zkSyncSepolia: process.env.ZKSYNC_ETHERSCAN_API_KEY as string,
       optimismSepolia: process.env.OPTIMISM_ETHERSCAN_API_KEY as string,
       arbitrumSepolia: process.env.ARBITRUM_ETHERSCAN_API_KEY as string,
+      apeChainSepolia: process.env.APE_CHAIN_ETHERSCAN_API_KEY as string,
     },
     customChains: [
       {
@@ -53,6 +54,15 @@ const config: HardhatUserConfig = {
           apiURL: process.env.ARBITRUM_SEPOLIA_ETHERSCAN_API_URL as string,
           browserURL: process.env
             .ARBITRUM_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
+        },
+      },
+      {
+        network: "apeChainSepolia",
+        chainId: parseInt(process.env.APE_CHAIN_SEPOLIA_CHAINID as string),
+        urls: {
+          apiURL: process.env.APE_CHAIN_SEPOLIA_ETHERSCAN_API_URL as string,
+          browserURL: process.env
+            .APE_CHAIN_SEPOLIA_ETHERSCAN_BROWSER_URL as string,
         },
       },
     ],
@@ -77,6 +87,10 @@ const config: HardhatUserConfig = {
     arbitrumSepolia: {
       url: process.env.ARBITRUM_SEPOLIA_RPC,
       accounts: [process.env.ARBITRUM_PRIVATE_KEY as string],
+    },
+    apeChainSepolia: {
+      url: process.env.APE_CHAIN_SEPOLIA_RPC,
+      accounts: [process.env.APE_CHAIN_PRIVATE_KEY as string],
     },
   },
 };
