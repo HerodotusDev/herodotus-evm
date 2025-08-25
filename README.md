@@ -1,5 +1,5 @@
 > [!WARNING]  
-> This is a legacy repository and production API no longer interacts with those contracts. For latest version check [Satellite repository].
+> This is a legacy repository and production API no longer interacts with those contracts. For latest version check [Satellite repository](https://github.com/HerodotusDev/satellite).
 
 
 ![](/banner.png)
