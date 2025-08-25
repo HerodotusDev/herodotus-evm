@@ -1,3 +1,7 @@
+> [!WARNING]  
+> This is a legacy repository and production API no longer interacts with those contracts. For latest version check [Satellite repository].
+
+
 ![](/banner.png)
 
 ### Herodotus EVM Smart Contracts
